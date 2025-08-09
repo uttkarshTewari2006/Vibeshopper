@@ -10,25 +10,23 @@ import {
   useSavedProductsActions,
   useRecentProducts,
   useRecommendedProducts,
-  useRecommendedShops
+  useRecommendedShops,
+  type Product,
+  type Shop
 } from '@shopify/shop-minis-react'
 import { useFal } from './hooks/useFal'
 import { FAL_MODELS } from './lib/fal'
-import { useShopifyData, useAITracking, useAnalytics } from './hooks/useShopifyData'
-import { DataSyncService } from './services/dataSyncService'
-// ✅ Add new analytics hooks
-import { useProductAnalytics, useAIAnalytics as useNewAIAnalytics } from './hooks/useAnalytics'
+import { 
+  useProductAnalytics, 
+  useSearchAnalytics, 
+  useShopAnalytics, 
+  useAIAnalytics,
+  useAnalyticsDashboard 
+} from './hooks/useAnalytics'
 
 export function App() {
-  const {products} = usePopularProducts()
-  const [prompt, setPrompt] = useState('')
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null)
-  const [showAnalytics, setShowAnalytics] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [activeTab, setActiveTab] = useState<'home' | 'search' | 'following' | 'analytics'>('home')
-  const [dataSyncService] = useState(() => DataSyncService.getInstance())
-  
-  // Shopify Shop Minis hooks
+  // ✅ Use NATIVE Shopify hooks (no custom duplication)
+  const { products } = usePopularProducts()
   const { user } = useCurrentUser()
   const { shops: followedShops } = useFollowedShops()
   const { followShop, unfollowShop } = useFollowedShopsActions()
@@ -38,25 +36,33 @@ export function App() {
   const { products: recommendedProducts } = useRecommendedProducts()
   const { shops: recommendedShops } = useRecommendedShops()
   
-  // Product search with proper parameters
+  // Local state
+  const [prompt, setPrompt] = useState('')
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [activeTab, setActiveTab] = useState<'home' | 'search' | 'following' | 'analytics'>('home')
+  
+  // ✅ Use NATIVE useProductSearch (no custom implementation)
   const { 
     products: searchResults, 
     loading: searchLoading, 
-    isTyping 
+    isTyping,
+    error: searchError,
+    fetchMore,
+    hasNextPage
   } = useProductSearch({
     query: searchQuery,
     first: 20,
-    filters: {}
+    filters: {},
+    skip: !searchQuery.trim() // Don't search empty queries
   })
   
-  // Hooks for database integration
-  const { syncProducts, searchProducts } = useShopifyData()
-  const { trackAIImageGeneration } = useAITracking()
-  const { analytics, isLoading: analyticsLoading } = useAnalytics()
-  
-  // ✅ New improved analytics hooks
+  // ✅ Analytics hooks (focused on what Shopify doesn't provide)
   const { trackView, trackClick } = useProductAnalytics()
-  const { trackImageGeneration: trackNewImageGeneration } = useNewAIAnalytics()
+  const { trackSearch } = useSearchAnalytics()
+  const { trackFollow } = useShopAnalytics()
+  const { trackImageGeneration } = useAIAnalytics()
+  const { analytics, isLoading: analyticsLoading, exportData } = useAnalyticsDashboard()
   
   const { generate, isLoading, error } = useFal({
     onSuccess: (result) => {
@@ -66,62 +72,22 @@ export function App() {
     }
   })
 
-  // Initialize data sync service and sync all Shopify data
-  useEffect(() => {
-    dataSyncService.initialize()
-  }, [dataSyncService])
-
-  // Sync and track popular products
+  // Track popular products views when they load
   useEffect(() => {
     if (products && products.length > 0) {
-      syncProducts(products)
-      dataSyncService.trackUserBehavior('page_view', {
-        products_count: products.length,
-        page: 'home'
+      // Track that user viewed the home page with products
+      products.slice(0, 3).forEach(product => {
+        trackView(product) // Track view for first few products
       })
     }
-  }, [products, syncProducts, dataSyncService])
+  }, [products, trackView])
 
-  // Sync user data
+  // Track search behavior with native useProductSearch
   useEffect(() => {
-    if (user) {
-      dataSyncService.trackEvent({
-        event_type: 'user_loaded',
-        entity_type: 'user',
-        entity_id: user.id || 'anonymous',
-        data: {
-          user_id: user.id,
-          email: user.email,
-          first_name: user.firstName,
-          timestamp: new Date().toISOString()
-        }
-      })
+    if (searchQuery && searchResults) {
+      trackSearch(searchQuery, {}, searchResults.length)
     }
-  }, [user, dataSyncService])
-
-  // Sync followed shops data
-  useEffect(() => {
-    if (followedShops && followedShops.length > 0) {
-      followedShops.forEach(shop => {
-        dataSyncService.syncShopData(shop, true)
-      })
-    }
-  }, [followedShops, dataSyncService])
-
-  // Track search behavior
-  useEffect(() => {
-    if (searchQuery && searchQuery.length > 2) {
-      const timeoutId = setTimeout(() => {
-        dataSyncService.trackUserBehavior('search', {
-          query: searchQuery,
-          results_count: searchResults?.length || 0,
-          is_typing: isTyping
-        })
-      }, 500) // Debounce search tracking
-
-      return () => clearTimeout(timeoutId)
-    }
-  }, [searchQuery, searchResults, isTyping, dataSyncService])
+  }, [searchQuery, searchResults, trackSearch])
 
   const handleGenerateImage = async () => {
     if (!prompt.trim()) return
@@ -136,15 +102,14 @@ export function App() {
         num_images: 1,
       })
 
-      const processingTime = Date.now() - startTime
+      const processingTime = (Date.now() - startTime) / 1000 // Convert to seconds
 
-      // Track AI image generation
       if (result && result.images && result.images.length > 0) {
-        await trackAIImageGeneration(
+        await trackImageGeneration(
           prompt,
           result.images[0].url,
           'flux-schnell',
-          processingTime / 1000, // Convert to seconds
+          processingTime,
           {
             width: result.images[0].width,
             height: result.images[0].height,
@@ -152,87 +117,64 @@ export function App() {
             inference_steps: 4
           }
         )
-
-        // Track the event in our analytics
-        await dataSyncService.trackEvent({
-          event_type: 'ai_image_generated',
-          entity_type: 'ai_interaction',
-          entity_id: crypto.randomUUID(),
-          data: {
-            prompt,
-            model: 'flux-schnell',
-            processing_time: processingTime,
-            success: true,
-            image_url: result.images[0].url
-          }
-        })
       }
     } catch (err) {
-      const processingTime = Date.now() - startTime
       console.error('Failed to generate image:', err)
-      
-      // Track failed generation
-      await dataSyncService.trackEvent({
-        event_type: 'ai_generation_failed',
-        entity_type: 'ai_interaction',
-        entity_id: crypto.randomUUID(),
-        data: {
-          prompt,
-          model: 'flux-schnell',
-          processing_time: processingTime,
-          success: false,
-          error: err instanceof Error ? err.message : 'Unknown error'
-        }
-      })
     }
   }
 
-  // Handle product interactions
-  const handleProductClick = async (product: any) => {
-    await dataSyncService.trackProductInteraction(
-      product.id,
-      'click',
-      { product_title: product.title, source: activeTab }
-    )
+  // Handle product interactions with analytics
+  const handleProductClick = async (product: Product) => {
+    await trackClick(product, activeTab)
   }
 
-  const handleProductSave = async (product: any) => {
+  const handleProductSave = async (product: Product) => {
     try {
       await saveProduct(product.id)
-      await dataSyncService.trackProductInteraction(
-        product.id,
-        'favorite',
-        { product_title: product.title, action: 'save' }
-      )
+      await trackClick(product, 'save_action')
     } catch (err) {
       console.error('Failed to save product:', err)
     }
   }
 
-  const handleProductUnsave = async (product: any) => {
+  const handleProductUnsave = async (product: Product) => {
     try {
       await unsaveProduct(product.id)
-      await dataSyncService.trackProductInteraction(
-        product.id,
-        'favorite',
-        { product_title: product.title, action: 'unsave' }
-      )
+      await trackClick(product, 'unsave_action')
     } catch (err) {
       console.error('Failed to unsave product:', err)
+    }
+  }
+
+  const handleShopFollow = async (shop: Shop) => {
+    try {
+      await followShop(shop.id)
+      await trackFollow(shop)
+    } catch (err) {
+      console.error('Failed to follow shop:', err)
+    }
+  }
+
+  const handleShopUnfollow = async (shop: Shop) => {
+    try {
+      await unfollowShop(shop.id)
+      // Note: We could add unfollow tracking here too
+    } catch (err) {
+      console.error('Failed to unfollow shop:', err)
     }
   }
 
   return (
     <div className="pt-12 px-4 pb-6">
       <h1 className="text-2xl font-bold mb-2 text-center">
-        Shop Minis with AI & Analytics
+        ✅ Improved Shop Minis with Analytics
       </h1>
       
       {/* User Info */}
       {user && (
         <div className="text-center mb-4 p-2 bg-green-50 rounded-lg">
           <p className="text-sm text-green-800">
-            Welcome, {user.firstName || 'User'}! 
+            Welcome, {user.profile?.displayName || 'User'}! 
             {followedShops?.length ? ` Following ${followedShops.length} shops` : ''}
           </p>
         </div>
@@ -248,10 +190,7 @@ export function App() {
         ].map(tab => (
           <button
             key={tab.key}
-            onClick={() => {
-              setActiveTab(tab.key as any)
-              dataSyncService.trackUserBehavior('page_view', { tab: tab.key })
-            }}
+            onClick={() => setActiveTab(tab.key as any)}
             className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
               activeTab === tab.key
                 ? 'bg-white text-blue-600 shadow-sm'
@@ -263,7 +202,7 @@ export function App() {
         ))}
       </div>
 
-      {/* AI Image Generator - Always visible */}
+      {/* AI Image Generator */}
       <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
         <h2 className="text-lg font-semibold mb-3 text-purple-800">
           🎨 AI Product Image Generator
@@ -330,6 +269,7 @@ export function App() {
         </div>
       )}
 
+      {/* ✅ IMPROVED SEARCH using native useProductSearch */}
       {activeTab === 'search' && (
         <div>
           <div className="mb-4">
@@ -341,12 +281,18 @@ export function App() {
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             {isTyping && (
-              <p className="text-sm text-gray-500 mt-1">Typing...</p>
+              <p className="text-sm text-gray-500 mt-1">⌨️ Typing...</p>
             )}
           </div>
           
+          {searchError && (
+            <p className="text-red-600 text-sm bg-red-50 p-2 rounded mb-4">
+              Search error: {searchError.message}
+            </p>
+          )}
+          
           {searchLoading && (
-            <p className="text-center text-gray-500">Searching...</p>
+            <p className="text-center text-gray-500">🔍 Searching...</p>
           )}
           
           {searchResults && searchResults.length > 0 && (
@@ -361,6 +307,16 @@ export function App() {
                   </div>
                 ))}
               </div>
+              
+              {/* ✅ Native pagination */}
+              {hasNextPage && (
+                <button
+                  onClick={fetchMore}
+                  className="w-full mt-4 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+                >
+                  Load More Products
+                </button>
+              )}
             </div>
           )}
           
@@ -383,10 +339,10 @@ export function App() {
                     <div className="flex justify-between items-center">
                       <div>
                         <h4 className="font-medium">{shop.name}</h4>
-                        <p className="text-sm text-gray-500">{shop.domain}</p>
+                        <p className="text-sm text-gray-500">{shop.primaryDomain.url}</p>
                       </div>
                       <button
-                        onClick={() => unfollowShop(shop.id)}
+                        onClick={() => handleShopUnfollow(shop)}
                         className="text-red-600 hover:text-red-800 text-sm"
                       >
                         Unfollow
@@ -409,10 +365,10 @@ export function App() {
                     <div className="flex justify-between items-center">
                       <div>
                         <h4 className="font-medium">{shop.name}</h4>
-                        <p className="text-sm text-gray-600">{shop.domain}</p>
+                        <p className="text-sm text-gray-600">{shop.primaryDomain.url}</p>
                       </div>
                       <button
-                        onClick={() => followShop(shop.id)}
+                        onClick={() => handleShopFollow(shop)}
                         className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
                       >
                         Follow
@@ -441,6 +397,7 @@ export function App() {
         </div>
       )}
 
+      {/* ✅ IMPROVED ANALYTICS Dashboard */}
       {activeTab === 'analytics' && (
         <div>
           <h3 className="text-lg font-semibold mb-4">📊 Analytics Dashboard</h3>
@@ -449,63 +406,49 @@ export function App() {
             <p className="text-center text-gray-500">Loading analytics...</p>
           ) : analytics ? (
             <div className="space-y-4">
-              {/* Overview Cards */}
+              {/* Summary Cards */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-blue-800">Total Events</h4>
-                  <p className="text-2xl font-bold text-blue-600">{analytics.totalEvents}</p>
+                  <h4 className="font-medium text-blue-800">Top Products</h4>
+                  <p className="text-2xl font-bold text-blue-600">{analytics.summary.totalProducts}</p>
                 </div>
                 <div className="bg-green-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-green-800">AI Interactions</h4>
-                  <p className="text-2xl font-bold text-green-600">{analytics.aiInteractionCount}</p>
+                  <h4 className="font-medium text-green-800">Total Searches</h4>
+                  <p className="text-2xl font-bold text-green-600">{analytics.summary.totalSearches}</p>
                 </div>
                 <div className="bg-purple-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-purple-800">Products in DB</h4>
-                  <p className="text-2xl font-bold text-purple-600">{analytics.productsInDb}</p>
+                  <h4 className="font-medium text-purple-800">AI Generations</h4>
+                  <p className="text-2xl font-bold text-purple-600">{analytics.summary.totalAIGenerations}</p>
                 </div>
                 <div className="bg-orange-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-orange-800">Generated Images</h4>
-                  <p className="text-2xl font-bold text-orange-600">{analytics.generatedImagesCount}</p>
-                </div>
-              </div>
-
-              {/* Event Types */}
-              <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <h4 className="font-medium mb-3">Event Types</h4>
-                <div className="space-y-2">
-                  {Object.entries(analytics.eventsByType).map(([type, count]) => (
-                    <div key={type} className="flex justify-between">
-                      <span className="text-sm">{type.replace(/_/g, ' ')}</span>
-                      <span className="font-medium">{count}</span>
-                    </div>
-                  ))}
+                  <h4 className="font-medium text-orange-800">Success Rate</h4>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {(analytics.aiStats.successRate * 100).toFixed(1)}%
+                  </p>
                 </div>
               </div>
 
               {/* Top Searches */}
-              {Object.keys(analytics.topSearches).length > 0 && (
+              {analytics.searchInsights.length > 0 && (
                 <div className="bg-white p-4 rounded-lg border border-gray-200">
                   <h4 className="font-medium mb-3">Top Searches</h4>
                   <div className="space-y-2">
-                    {Object.entries(analytics.topSearches)
-                      .sort(([,a], [,b]) => (b as number) - (a as number))
-                      .slice(0, 5)
-                      .map(([query, count]) => (
-                        <div key={query} className="flex justify-between">
-                          <span className="text-sm">"{query}"</span>
-                          <span className="font-medium">{count}</span>
-                        </div>
-                      ))}
+                    {analytics.searchInsights.map((search: any) => (
+                      <div key={search.query} className="flex justify-between">
+                        <span className="text-sm">"{search.query}"</span>
+                        <span className="font-medium">{search.count}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
 
               {/* AI Model Usage */}
-              {Object.keys(analytics.aiModelUsage).length > 0 && (
+              {Object.keys(analytics.aiStats.modelUsage).length > 0 && (
                 <div className="bg-white p-4 rounded-lg border border-gray-200">
                   <h4 className="font-medium mb-3">AI Model Usage</h4>
                   <div className="space-y-2">
-                    {Object.entries(analytics.aiModelUsage).map(([model, count]) => (
+                    {Object.entries(analytics.aiStats.modelUsage).map(([model, count]) => (
                       <div key={model} className="flex justify-between">
                         <span className="text-sm">{model}</span>
                         <span className="font-medium">{count}</span>
@@ -518,13 +461,13 @@ export function App() {
               {/* Export Data Button */}
               <button
                 onClick={async () => {
-                  const data = await dataSyncService.exportAllData()
-                  console.log('Exported data:', data)
-                  alert('Data exported to console!')
+                  const data = await exportData()
+                  console.log('Exported analytics data:', data)
+                  alert('Analytics data exported to console!')
                 }}
                 className="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700"
               >
-                Export All Data
+                Export Analytics Data
               </button>
             </div>
           ) : (

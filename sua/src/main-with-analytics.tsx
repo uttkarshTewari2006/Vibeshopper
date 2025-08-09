@@ -1,16 +1,18 @@
-import {StrictMode} from 'react'
-import {createRoot} from 'react-dom/client'
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
 import './index.css'
-import {MinisContainer} from '@shopify/shop-minis-react'
+import { App } from './App.tsx'
+import { MinisContainer } from '@shopify/shop-minis-react'
 
-import {App} from './App-with-hooks'
+// ✅ Import analytics utilities for console access
+import './utils/console-queries'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <MinisContainer>
       <App />
     </MinisContainer>
-  </StrictMode>
+  </StrictMode>,
 )
 
 // Add console message for users
