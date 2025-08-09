@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useProductSearch } from '@shopify/shop-minis-react';
+import React, { useState, useEffect } from 'react';
 import { fal } from "@fal-ai/client";
 import { CategoryRow } from './CategoryRow';
 
@@ -22,33 +21,12 @@ export interface GeneratedCategory {
 export function ProductList() {
   const [userPrompt, setUserPrompt] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [filters] = useState({});
+  // Filters can be added later if needed for shop-specific constraints
   const [generatedCategories, setGeneratedCategories] = useState<GeneratedCategory[]>([]);
   const [isGeneratingCategories, setIsGeneratingCategories] = useState(false);
-  const autoLoadAllRef = useRef(false);
 
   // Fetch products using the search hook with filters
-  const { products, loading, hasNextPage, fetchMore } = useProductSearch({
-    query: debouncedQuery,
-    filters: filters,
-    first: 50
-  });
-
-  // Start auto-load-all on query change
-  useEffect(() => {
-    autoLoadAllRef.current = true;
-  }, [debouncedQuery]);
-
-  // Keep fetching pages until we've loaded everything
-  useEffect(() => {
-    if (!autoLoadAllRef.current) return;
-    if (loading) return;
-    if (hasNextPage) {
-      fetchMore?.();
-    } else {
-      autoLoadAllRef.current = false;
-    }
-  }, [hasNextPage, loading, fetchMore]);
+  // We fetch products per-category inside CategoryRow
 
   fal.config({
     credentials: import.meta.env.VITE_FAL_KEY
@@ -245,10 +223,10 @@ Focus on practical, actionable categories that would help someone find a broad r
           />
           <button
             type="submit"
-            disabled={loading || isGeneratingCategories || !userPrompt.trim()}
+            disabled={isGeneratingCategories || !userPrompt.trim()}
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
-            {loading || isGeneratingCategories ? 'Analyzing...' : 'Find Project Templates'}
+            {isGeneratingCategories ? 'Analyzing...' : 'Find Project Templates'}
           </button>
         </form>
       </div>
@@ -270,21 +248,7 @@ Focus on practical, actionable categories that would help someone find a broad r
         </div>
       )}
 
-      {/* No Results */}
-      {products && products.length === 0 && debouncedQuery && !loading && !isGeneratingCategories && (
-        <div className="text-center py-8">
-          <p className="text-gray-500">No project templates found for "{debouncedQuery}"</p>
-          <p className="text-sm text-gray-400 mt-2">Try different keywords or browse popular templates</p>
-        </div>
-      )}
-
-      {/* Search Loading State */}
-      {loading && !isGeneratingCategories && (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-gray-500 mt-2">Searching for project templates...</p>
-        </div>
-      )}
+      {/* Per-category loading and empty states are handled inside CategoryRow */}
     </div>
   );
 }
