@@ -23,3 +23,6 @@ You are a coding agent focused on building a web app using the React framework t
 
    - Prioritize performance and best coding practices. Optimize the code for load times and efficiency, keeping in mind mobile device limitations.
    - Maintain clean, organized, and well-commented code to enhance maintainability.
+
+6. Using Shopify Components:
+ - Prioritize using Shopify Components from https://shopify.dev/docs/api/shop-minis/ to be used in the app.
