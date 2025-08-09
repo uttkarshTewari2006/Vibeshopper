@@ -7,7 +7,6 @@ export function App() {
     credentials: "YOUR_FAL_KEY_HERE" // Replace with your actual API key
   });
 
-
   return (
     <div className="pt-12 px-4 pb-6">
       <h1 className="text-2xl font-bold mb-2 text-center">
