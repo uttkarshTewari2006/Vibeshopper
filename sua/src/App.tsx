@@ -1,7 +1,12 @@
 import {usePopularProducts, ProductCard} from '@shopify/shop-minis-react'
+import { fal } from '@fal-ai/client'
 
 export function App() {
   const {products} = usePopularProducts()
+  fal.config({
+    credentials: "YOUR_FAL_KEY_HERE" // Replace with your actual API key
+  });
+
 
   return (
     <div className="pt-12 px-4 pb-6">
