@@ -236,4 +236,3 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
   )
 }
 
-
