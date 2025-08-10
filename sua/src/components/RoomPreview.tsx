@@ -16,35 +16,34 @@ interface RoomPreviewProps {
 
 export function RoomPreview({ models, onClose }: RoomPreviewProps) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/80">
-      <div className="absolute inset-0 bg-white">
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 z-10 px-3 py-1 text-xs bg-gray-800 text-white rounded"
-        >
-          Close
-        </button>
-        <Canvas
-          shadows
-          camera={{ position: [0, 6, 9], fov: 50, near: 0.1, far: 200 }}
-          dpr={[1, 2]}
-        >
-          <RendererSettings />
-          <color attach="background" args={[0.95, 0.96, 0.98]} />
-          {/* Floor only */}
-          <Floor />
-          {/* Lights */}
-          <ambientLight intensity={0.35} />
-          <hemisphereLight color={0xffffff} groundColor={0x777777} intensity={1.0} />
-          <directionalLight castShadow position={[4, 8, 6]} intensity={1.4} shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
-          <ObliqueCamera count={models.length} />
+    <div className="relative h-full w-full bg-white">
+      <button
+        onClick={onClose}
+        className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center bg-gray-800 text-white rounded-full hover:bg-gray-700 transition-colors"
+        aria-label="Close preview"
+      >
+        <span className="relative -top-px">×</span>
+      </button>
+      <Canvas
+        shadows
+        camera={{ position: [0, 6, 9], fov: 50, near: 0.1, far: 200 }}
+        dpr={[1, 2]}
+      >
+        <RendererSettings />
+        <color attach="background" args={[0.95, 0.96, 0.98]} />
+        {/* Floor only */}
+        <Floor />
+        {/* Lights */}
+        <ambientLight intensity={0.35} />
+        <hemisphereLight color={0xffffff} groundColor={0x777777} intensity={1.0} />
+        <directionalLight castShadow position={[4, 8, 6]} intensity={1.4} shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
+        <ObliqueCamera count={models.length} />
 
-          {/* Place models with spacing; custom floor-constrained drag logic */}
-          {models.map((m, idx) => (
-            <DraggableModel key={m.id} url={m.url} index={idx} total={models.length} />
-          ))}
-        </Canvas>
-      </div>
+        {/* Place models with spacing; custom floor-constrained drag logic */}
+        {models.map((m, idx) => (
+          <DraggableModel key={m.id} url={m.url} index={idx} total={models.length} />
+        ))}
+      </Canvas>
     </div>
   );
 }

@@ -80,7 +80,7 @@ export function CategoryRow({ category, baseQuery }: CategoryRowProps) {
   return (
     <div className="py-3">
       <div className="mb-3">
-        <h3 className="text-base font-semibold text-gray-800 mb-2">{name}</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">{name}</h3>
         {/* Show only the most relevant search terms as small pills (max 3, 2 words each) */}
         <div className="flex gap-1.5 overflow-hidden">
           {searchTerms

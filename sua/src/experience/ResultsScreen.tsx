@@ -85,8 +85,7 @@ export function ResultsScreen({ initialPrompt, latestPrompt, onPromptChange, pro
 
       {hasSearched && (
         <>
-          {/* AgentInput and VibeChain container */}
-          <div className="flex flex-col sticky rounded-3xl backdrop-blur-lg top-3 z-50 w-full max-w-md mx-auto">
+          <div className=" sticky rounded-3xl backdrop-blur-lg top-3 z-50 w-full max-w-md mx-auto">
             {/* AgentInput in its own container */}
             <div className="rounded-3xl bg-white/20 w-full">
               <AgentInput

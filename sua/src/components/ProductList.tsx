@@ -50,8 +50,6 @@ export function ProductList({ basePrompt, prompt, resetCounter }: ProductListPro
     credentials: falKey
   });
 
-
-
   // Generate categories using Fal.AI
   const generateCategoriesWithAI = async (prompt: string) => {
     setIsGeneratingCategories(true);
@@ -418,6 +416,13 @@ Return JSON array with updated categories. Keep the exact same IDs:
 
   return (
     <div className="w-full max-w-md mx-auto">
+      {/* AR Category Row - shown when there's a prompt */}
+      {prompt && (
+        <div className="mb-6">
+          <ARCategoryRow />
+        </div>
+      )}
+      
       {/* AI-Generated Categories and Products */}
       {generatedCategories.length > 0 && (
         <div className="space-y-4">
@@ -429,7 +434,7 @@ Return JSON array with updated categories. Keep the exact same IDs:
 
       {/* Category Generation Loading */}
       {isGeneratingCategories && (
-        <LoadingState message="Analyzing your project and generating relevant categories..." />
+        <LoadingState message="Catching a vibe..." />
       )}
 
       {/* Per-category loading and empty states are handled inside CategoryRow */}
