@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react'
+import {useEffect, useRef, useState, useCallback} from 'react'
 import {useCreateImageContent, useImagePicker} from '@shopify/shop-minis-react'
 
 type AgentInputProps = {
@@ -6,20 +6,46 @@ type AgentInputProps = {
   placeholder?: string
   variant?: 'light' | 'dark'
   defaultPrompt?: string
-  showReset?: boolean
-  onReset?: () => void
+  debounceMs?: number
 }
 
-export function AgentInput({onSend, placeholder = 'Vibe something...', variant = 'light', defaultPrompt, showReset = false, onReset}: AgentInputProps) {
+export function AgentInput({onSend, placeholder = 'Vibe something...', variant = 'light', defaultPrompt, debounceMs = 300}: AgentInputProps) {
   const [prompt, setPrompt] = useState('')
+  const [debouncedPrompt, setDebouncedPrompt] = useState('')
   const [imageFile, setImageFile] = useState<File | undefined>(undefined)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isThinking, setIsThinking] = useState(false)
   const [showPickerMenu, setShowPickerMenu] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const debounceTimeoutRef = useRef<NodeJS.Timeout>()
 
   const {openCamera, openGallery} = useImagePicker()
   const {createImageContent, loading: uploading} = useCreateImageContent()
+
+  // Debounce the prompt updates
+  const debouncedSetPrompt = useCallback((value: string) => {
+    setPrompt(value)
+    setIsThinking(value.length > 0)
+    
+    // Clear existing timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current)
+    }
+    
+    // Set new timeout for debounced update
+    debounceTimeoutRef.current = setTimeout(() => {
+      setDebouncedPrompt(value)
+    }, debounceMs)
+  }, [debounceMs])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
+    }
+  }, [])
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -41,13 +67,14 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
   useEffect(() => {
     if (defaultPrompt && defaultPrompt !== prompt) {
       setPrompt(defaultPrompt)
+      setDebouncedPrompt(defaultPrompt)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultPrompt])
 
   async function handleSend() {
-    console.log('[AgentInput] handleSend called with prompt:', prompt, 'imageFile:', imageFile)
-    if (!prompt && !imageFile) {
+    console.log('[AgentInput] handleSend called with prompt:', debouncedPrompt || prompt, 'imageFile:', imageFile)
+    if (!debouncedPrompt && !prompt && !imageFile) {
       console.log('[AgentInput] No prompt or imageFile, returning early')
       return
     }
@@ -61,8 +88,9 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
           contentTitle: 'Agent input image',
         })
       }
-      console.log('[AgentInput] Calling onSend with:', {prompt, imageFile: uploadedFile})
-      onSend?.({prompt, imageFile: uploadedFile})
+      const finalPrompt = debouncedPrompt || prompt
+      console.log('[AgentInput] Calling onSend with:', {prompt: finalPrompt, imageFile: uploadedFile})
+      onSend?.({prompt: finalPrompt, imageFile: uploadedFile})
     } finally {
       // Keep thinking state controlled by outer consumer if needed
       setIsThinking(false)
@@ -71,9 +99,9 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
 
   function handleReset() {
     setPrompt('')
+    setDebouncedPrompt('')
     setImageFile(undefined)
     setIsThinking(false)
-    onReset?.()
   }
 
   return (
@@ -146,8 +174,7 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
           rows={1}
           value={prompt}
           onChange={e => {
-            setPrompt(e.target.value)
-            setIsThinking(e.target.value.length > 0)
+            debouncedSetPrompt(e.target.value)
           }}
           onKeyDown={e => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -159,20 +186,10 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
           className="flex-1 resize-none bg-transparent outline-none text-[15px] placeholder:text-gray-500 px-1 leading-6 max-h-32 overflow-y-auto"
         />
 
-        {/* Inline actions (Reset optional) + Send */}
+        {/* Send button */}
         <div className="flex items-center gap-2">
-          {showReset && (prompt || imageFile) ? (
-            <button
-              type="button"
-              onClick={handleReset}
-              aria-label="Reset"
-              className="shrink-0 h-9 px-3 rounded-full text-xs bg-white/60 backdrop-blur ring-1 ring-black/10 hover:bg-white/70 transition-colors"
-            >
-              Reset
-            </button>
-          ) : null}
           {(() => {
-            const disabled = uploading || (!prompt && !imageFile)
+            const disabled = uploading || (!debouncedPrompt && !prompt && !imageFile)
             return (
               <button
                 type="button"

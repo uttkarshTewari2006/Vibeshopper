@@ -2,23 +2,19 @@ import {Button as ShopButton} from '@shopify/shop-minis-react'
 import { useState } from 'react'
 import {ProductList} from '../components/ProductList'
 import {AgentInput} from '../components/AgentInput'
+// import {VibeChain} from '../components/VibeChain'
 
 interface ResultsScreenProps {
   initialPrompt?: string
   latestPrompt?: string
   onPromptChange?: (p: string) => void
+  promptChain: Array<{id: string; prompt: string; timestamp: Date}>
+  onReset: () => void
 }
 
-export function ResultsScreen({ initialPrompt, latestPrompt, onPromptChange }: ResultsScreenProps) {
+export function ResultsScreen({ initialPrompt, latestPrompt, onPromptChange, promptChain, onReset }: ResultsScreenProps) {
   const agentInputTransitionStyle = {['viewTransitionName' as any]: 'agent-input'} as React.CSSProperties
   const [hasSearched, setHasSearched] = useState<boolean>(Boolean(initialPrompt || latestPrompt))
-  const [resetCounter, setResetCounter] = useState<number>(0)
-
-  const handleReset = () => {
-    setResetCounter((c: number) => c + 1)
-    setHasSearched(false)  
-    onPromptChange?.('')
-  }
 
   const handleSend = ({prompt}: {prompt: string; imageFile?: File}) => {
     setHasSearched(true) 
@@ -83,36 +79,44 @@ export function ResultsScreen({ initialPrompt, latestPrompt, onPromptChange }: R
                 </div>
               </>
             )}
-            
-            <div className={`${
-              !hasSearched 
-                ? '' 
-                : 'flex justify-center sticky rounded-3xl backdrop-blur-lg top-3 z-100' 
-            }`}>
-              <div className={`${
-                !hasSearched 
-                  ? '' 
-                  : 'rounded-3xl bg-white/20' 
-              }`}>
-                <AgentInput
-                  variant="light"
-                  defaultPrompt={!hasSearched ? '' : (latestPrompt || initialPrompt)}
-                  showReset={!hasSearched ? false : true}
-                  onReset={handleReset}
-                  onSend={handleSend}
-                />
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
       {hasSearched && (
-        <div className="mt-6 space-y-8">
-          <section>
-            <ProductList basePrompt={initialPrompt} prompt={latestPrompt || initialPrompt} resetCounter={resetCounter} />
-          </section>
-        </div>
+        <>
+          {/* AgentInput and VibeChain container */}
+          <div className="flex flex-col sticky rounded-3xl backdrop-blur-lg top-3 z-50 w-full max-w-md mx-auto">
+            {/* AgentInput in its own container */}
+            <div className="rounded-3xl bg-white/20 w-full">
+              <AgentInput
+                variant="light"
+                defaultPrompt={latestPrompt || initialPrompt}
+                onSend={handleSend}
+              />
+            </div>
+            
+            {/* VibeChain in its own separate container - positioned on the right */}
+            {promptChain.length > 0 && (
+              <div className="mt-3 rounded-3xl bg-white/40 backdrop-blur-sm w-full relative z-10 self-end">
+                {/* <VibeChain 
+                  prompts={promptChain} 
+                  onReset={onReset}
+                /> */}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 space-y-8">
+            <section>
+              <ProductList 
+                basePrompt={initialPrompt || ''} 
+                prompt={latestPrompt || initialPrompt}
+                resetCounter={0}
+              />
+            </section>
+          </div>
+        </>
       )}
 
       <div className="fixed inset-x-0 bottom-4 flex justify-center pointer-events-none">

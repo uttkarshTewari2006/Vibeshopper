@@ -23,10 +23,15 @@ export interface GeneratedCategory {
   isUpdating?: boolean; // track if this category is being updated
 }
 
+export interface AIResponse {
+  categories: GeneratedCategory[];
+}
+
 interface ProductListProps {
   basePrompt?: string; // initial prompt from intro
   prompt?: string; // latest refinement
   resetCounter?: number; // increments to signal a user-initiated reset
+ // onVibeTagGenerated?: (vibeTag: string) => void; // callback for when vibe tag is generated
 }
 
 export function ProductList({ basePrompt, prompt, resetCounter }: ProductListProps) {
@@ -73,7 +78,8 @@ Rules:
 - Ensure coverage across types when relevant: include at least one each of planning_app, tools, consumables, and containers if the goal implies acquiring physical items (e.g., planting/gardening). Use best judgment otherwise.
 - Make categories concrete and shoppable. The searchTerms must be specific, commercially useful queries (e.g., "garden hand trowel", "terracotta pots", "potting soil", "seed starter kit", "garden planner app").
 - Assign higher priority to categories that are essential next purchases to achieve the goal.
-- Use both initial and latest intent; when the latest refines color/style (e.g., "something blue"), bias categories and terms accordingly.`,
+- Use both initial and latest intent; when the latest refines color/style (e.g., "something blue"), bias categories and terms accordingly.
+- The vibeTag should be trendy, concise, and capture the essence of what they're shopping for.`,
         },
       });
 
@@ -89,7 +95,8 @@ Rules:
           let outputText: string | null = null;
 
           if (Array.isArray(result)) {
-            categories = result as any;
+            // If result is an array, it might be the old format or new format
+                      categories = result as any;
           } else if (typeof result === 'string') {
             outputText = result;
           } else if (result && typeof result === 'object') {
@@ -136,6 +143,7 @@ Rules:
               try { parsed = JSON.parse(parsed); } catch {}
             }
             if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+              
               const fromObj = (parsed as any).output ?? (parsed as any).data?.output ?? (parsed as any).result ?? (parsed as any).content ?? (parsed as any).text;
               if (Array.isArray(fromObj)) {
                 parsed = fromObj;
