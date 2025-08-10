@@ -15,6 +15,14 @@ export function CategoryRow({ category, baseQuery }: CategoryRowProps) {
   if (baseQuery) orParts.push(`"${baseQuery}"`);
   const categoryQuery = orParts.length > 0 ? `(${orParts.join(' OR ')})` : baseQuery;
 
+  // Debug: print simple tags and the effective query
+  useEffect(() => {
+    const simpleTags = searchTerms
+      .map((t) => String(t).toLowerCase().replace(/[^a-z0-9\-\s]/g, '').trim())
+      .filter(Boolean);
+    console.log('[CategoryRow] Query', { name, baseQuery, simpleTags, categoryQuery });
+  }, [name, baseQuery, categoryQuery, searchTerms]);
+
   const { products, loading, hasNextPage, fetchMore } = useProductSearch({
     query: categoryQuery,
     first: 30,
@@ -34,6 +42,12 @@ export function CategoryRow({ category, baseQuery }: CategoryRowProps) {
     }
     return result;
   }, [products]);
+
+  // Debug: print product ids returned for this category
+  useEffect(() => {
+    const ids = uniqueProducts.map((p: any) => String(p?.id ?? p?.gid)).filter(Boolean);
+    console.log('[CategoryRow] Results', { name, count: ids.length, ids });
+  }, [name, uniqueProducts]);
 
   // Auto-load all pages for this category
   const autoLoadAllRef = useRef(false);

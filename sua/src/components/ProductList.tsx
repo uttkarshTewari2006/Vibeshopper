@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fal } from "@fal-ai/client";
 import { CategoryRow } from './CategoryRow';
+import { ARCategoryRow } from './ARCategoryRow';
 
 // Add Vite env types
 declare global {
@@ -230,6 +231,13 @@ Focus on practical, actionable categories that would help someone find a broad r
           </button>
         </form>
       </div>
+
+      {/* AR Category */}
+      {debouncedQuery && (
+        <div className="mb-6">
+          <ARCategoryRow />
+        </div>
+      )}
 
       {/* AI-Generated Categories and Products */}
       {generatedCategories.length > 0 && (
