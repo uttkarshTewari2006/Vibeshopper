@@ -1,4 +1,4 @@
-import * as fal from "@fal-ai/serverless-client";
+import { fal } from "@fal-ai/client";
 
 // Configure Fal AI with your API key
 // In production, make sure to use environment variables

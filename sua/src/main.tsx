@@ -4,6 +4,8 @@ import './index.css'
 import {MinisContainer} from '@shopify/shop-minis-react'
 
 import {App} from './App.tsx'
+// Expose console helpers (simpleAnalytics, userUtils)
+import './console'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -59,7 +59,7 @@ export function ProductList({ basePrompt, prompt, resetCounter }: ProductListPro
     setIsGeneratingCategories(true);
     
     try {
-      const result = await fal.subscribe("fal-ai/any-llm", {
+      const { data } = await fal.subscribe("fal-ai/any-llm", {
         input: {
           model: "anthropic/claude-3.5-sonnet",
           prompt: `You are helping a shopper. Combine their initial intent and latest refinement to propose practical shopping categories.
@@ -85,38 +85,25 @@ Rules:
         },
       });
 
-      if (result) {
+      if (data) {
         try {
           // Debug logging - print the complete result structure
-          console.log('🔍 Fal.AI Complete Result:', result);
-          console.log('🔍 Result keys:', Object.keys(result));
-          console.log('🔍 Result type:', typeof result);
+          console.log('🔍 Fal.AI data:', data);
           
           // Try different ways to extract categories or a JSON string containing them
           let categories: GeneratedCategory[] | null = null;
           let outputText: string | null = null;
 
-          if (Array.isArray(result)) {
-            categories = result as any;
-          } else if (typeof result === 'string') {
-            outputText = result;
-          } else if (result && typeof result === 'object') {
-            const r: any = result;
-            if (Array.isArray(r.output)) {
-              categories = r.output;
-            } else if (typeof r.output === 'string') {
-              outputText = r.output;
-            } else if (r.data) {
-              if (Array.isArray(r.data.output)) {
-                categories = r.data.output;
-              } else if (typeof r.data.output === 'string') {
-                outputText = r.data.output;
-              }
-            } else if (typeof r.text === 'string') {
-              outputText = r.text;
-            } else if (typeof r.content === 'string') {
-              outputText = r.content;
-            }
+          if (Array.isArray((data as any))) {
+            categories = data as any;
+          } else if (typeof (data as any)?.output === 'string') {
+            outputText = (data as any).output;
+          } else if (Array.isArray((data as any)?.output)) {
+            categories = (data as any).output as any;
+          } else if (typeof (data as any)?.text === 'string') {
+            outputText = (data as any).text;
+          } else if (typeof (data as any)?.content === 'string') {
+            outputText = (data as any).content;
           }
 
           console.log('📝 Extracted categories:', categories);
@@ -207,8 +194,8 @@ Rules:
           setGeneratedCategories(sortedCategories);
         } catch (parseError) {
           console.error('❌ Failed to parse AI response:', parseError);
-          console.error('🔍 Raw result that failed to parse:', result);
-          console.error('🔍 Result structure:', JSON.stringify(result, null, 2));
+          console.error('🔍 Raw data that failed to parse:', data);
+          console.error('🔍 Data structure:', JSON.stringify(data, null, 2));
           
           // Fallback to multiple default categories so UI shows multiple rows
           const fallbackCategories: GeneratedCategory[] = [
