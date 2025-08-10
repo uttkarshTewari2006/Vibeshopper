@@ -32,13 +32,11 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
       clearTimeout(debounceTimeoutRef.current)
     }
     
-    // Set new timeout for debounced update
     debounceTimeoutRef.current = setTimeout(() => {
       setDebouncedPrompt(value)
     }, debounceMs)
   }, [debounceMs])
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (debounceTimeoutRef.current) {
@@ -56,20 +54,18 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
     const el = textareaRef.current
     if (!el) return
     el.style.height = 'auto'
-    el.style.height = `${Math.min(el.scrollHeight, 140)}px`
+    el.style.height = `${Math.min(el.scrollHeight, 72)}px`
   }
 
   useEffect(() => {
     autoSizeTextarea()
   }, [prompt])
 
-  // Initialize from defaultPrompt when provided (e.g., after view transition)
   useEffect(() => {
     if (defaultPrompt && defaultPrompt !== prompt) {
       setPrompt(defaultPrompt)
       setDebouncedPrompt(defaultPrompt)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultPrompt])
 
   async function handleSend() {
@@ -79,7 +75,6 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
       return
     }
     setIsThinking(true)
-    // Optional: upload attached image into Shop Content first
     try {
       let uploadedFile: File | undefined = imageFile
       if (imageFile) {
@@ -92,7 +87,6 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
       console.log('[AgentInput] Calling onSend with:', {prompt: finalPrompt, imageFile: uploadedFile})
       onSend?.({prompt: finalPrompt, imageFile: uploadedFile})
     } finally {
-      // Keep thinking state controlled by outer consumer if needed
       setIsThinking(false)
     }
   }
@@ -107,7 +101,7 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
   return (
     <div className="w-full">
       <div
-        className={`relative flex items-center gap-2 rounded-3xl p-3 sm:p-4 ring-1 ring-[#5433EB26] bg-white/55 backdrop-blur-5xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.65)] transition-colors duration-500 ease-out ${
+        className={`relative flex items-end gap-2 rounded-3xl p-3 sm:p-4 ring-1 ring-[#5433EB26] bg-white/55 backdrop-blur-5xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.65)] transition-colors duration-500 ease-out ${
           isThinking ? 'ai-surface-thinking' : 'ai-surface'
         }`}
       >
@@ -169,22 +163,37 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
           className="hidden"
         />
 
-        <textarea
-          ref={textareaRef}
-          rows={1}
-          value={prompt}
-          onChange={e => {
-            debouncedSetPrompt(e.target.value)
-          }}
-          onKeyDown={e => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              handleSend()
-            }
-          }}
-          placeholder={placeholder}
-          className="flex-1 resize-none bg-transparent outline-none text-[15px] placeholder:text-gray-500 px-1 leading-6 max-h-32 overflow-y-auto"
-        />
+        <div className="flex-1 min-w-0">
+          <textarea
+            ref={textareaRef}
+            rows={1}
+            value={prompt}
+            onChange={e => {
+              debouncedSetPrompt(e.target.value)
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                handleSend()
+              }
+            }}
+            placeholder={placeholder}
+            className="w-full resize-none bg-transparent outline-none text-[15px] placeholder:text-gray-500 leading-6 max-h-[5rem] overflow-y-auto"
+            style={{
+              maxHeight: '4.5rem', // ~3 lines of text
+              // Hide scrollbar for all browsers
+              scrollbarWidth: 'none', // Firefox
+              msOverflowStyle: 'none', // IE/Edge
+            }}
+          />
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              textarea::-webkit-scrollbar {
+                display: none; /* Chrome/Safari/Opera */
+              }
+            `
+          }} />
+        </div>
 
         {/* Send button */}
         <div className="flex items-center gap-2">
@@ -213,7 +222,7 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
       </div>
 
       {imageFile ? (
-        <div className="mt-2 flex items-center gap-3 text-xs text-gray-600">
+        <div className="flex items-center gap-3 text-xs text-gray-600">
           <div className="h-10 w-10 overflow-hidden rounded-lg ring-1 ring-black/5">
             {/* image preview */}
             <img
