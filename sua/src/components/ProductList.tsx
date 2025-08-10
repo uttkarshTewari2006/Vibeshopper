@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { fal } from "@fal-ai/client";
 import { CategoryRow } from './CategoryRow';
 import { LoadingState } from './LoadingState';
+import { ARCategoryRow } from './ARCategoryRow';
 
 // Add Vite env types
 declare global {
