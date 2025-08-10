@@ -40,6 +40,7 @@ interface ProductListProps {
 export function ProductList({ basePrompt, prompt, resetCounter, onAddToCart, onRemoveFromCart }: ProductListProps) {
   const [generatedCategories, setGeneratedCategories] = useState<GeneratedCategory[]>([]);
   const [isGeneratingCategories, setIsGeneratingCategories] = useState(false);
+  const [isArLoading, setIsArLoading] = useState(false);
 
   // Fetch products using the search hook with filters
   // We fetch products per-category inside CategoryRow
@@ -418,13 +419,21 @@ Return JSON array with updated categories. Keep the exact same IDs:
 
   return (
     <div className="w-full max-w-md mx-auto">
-      {/* AR Category Row - shown when there's a prompt
-      {prompt && (
+      {(prompt || basePrompt) && (
         <div className="mb-6">
-          <ARCategoryRow />
+          {/* Single AR loader at the top once categories have finished loading */}
+          {!isGeneratingCategories && isArLoading && (
+            <LoadingState message="Finding AR products..." />
+          )}
+          <ARCategoryRow
+            intent={`${(basePrompt ?? '').trim()} ${(prompt ?? '').trim()}`.trim()}
+            categoriesLoading={isGeneratingCategories}
+            onLoadingChange={setIsArLoading}
+            onAddToCart={onAddToCart}
+            onRemoveFromCart={onRemoveFromCart}
+          />
         </div>
       )}
-       */}
       {/* AI-Generated Categories and Products */}
       {generatedCategories.length > 0 && (
         <div className="space-y-4">

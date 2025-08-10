@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ProductCard, useCuratedProducts, useProductMedia } from '@shopify/shop-minis-react';
+import { ProductCard, useCuratedProducts, useProductMedia, useShopCartActions } from '@shopify/shop-minis-react';
 import { RoomPreview, type PreviewModel } from './RoomPreview';
-import { ShoppingCart, Check, Plus } from 'lucide-react';
+import { Check, Plus } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { EffectCoverflow } from 'swiper/modules';
 import 'swiper/css';
@@ -9,22 +9,86 @@ import 'swiper/css/effect-coverflow';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import './ARCategoryRow.css';
+import { fal } from '../lib/fal';
 
 interface ARCategoryRowProps {
+  intent?: string;
+  categoriesLoading?: boolean;
+  onLoadingChange?: (loading: boolean) => void;
   onAddToCart?: (product: { name: string; price: string; image: string; category: string }) => void;
   onRemoveFromCart?: (productName: string, categoryName: string) => void;
 }
 
 
-export function ARCategoryRow({ onAddToCart, onRemoveFromCart }: ARCategoryRowProps) {
+export function ARCategoryRow({ intent, categoriesLoading, onLoadingChange, onAddToCart, onRemoveFromCart }: ARCategoryRowProps) {
+  const allowedTags = ['Apparel & Accessories', 'Furniture', 'Luggage & Bags', 'Home & Garden'] as const;
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [tagResolved, setTagResolved] = useState(false);
+
+  useEffect(() => {
+    let isActive = true;
+    async function chooseTag() {
+      setTagResolved(false);
+      onLoadingChange?.(true);
+      try {
+        const promptText = `You must pick exactly one tag from this list based on the user's shopping intent, or return "none" if nothing matches. The user might have mispelled the intent or not be specific enough, so try to be flexible.
+Allowed tags: ${allowedTags.join(', ')}
+User intent: ${String(intent ?? '').trim()}
+Return ONLY JSON of the form {"tag": "one of allowed or none"}`;
+        const result = await fal.subscribe('fal-ai/any-llm', {
+          input: {
+            model: 'anthropic/claude-3.5-sonnet',
+            prompt: promptText,
+          },
+        });
+        if (!isActive) return;
+        let tag: string | null = null;
+        if (typeof result === 'string') {
+          try { tag = JSON.parse(result)?.tag ?? null; } catch { /* ignore */ }
+        } else if (result && typeof result === 'object') {
+          const raw = (result as any)?.data?.output ?? (result as any)?.output ?? result;
+          if (typeof raw === 'string') {
+            try { tag = JSON.parse(raw)?.tag ?? null; } catch { /* ignore */ }
+          } else if ((raw as any)?.tag) {
+            tag = (raw as any).tag;
+          }
+        }
+        if (typeof tag === 'string') {
+          const normalized = tag.trim();
+          const match = allowedTags.find(t => t.toLowerCase() === normalized.toLowerCase());
+          setSelectedTag(match ?? null);
+        } else {
+          setSelectedTag(null);
+        }
+      } catch {
+        setSelectedTag(null);
+      } finally {
+        if (isActive) setTagResolved(true);
+        onLoadingChange?.(false);
+      }
+    }
+    chooseTag();
+    return () => { isActive = false; };
+  }, [intent]);
+
   const { products, loading } = useCuratedProducts({
     handle: 'ar-models',
+    anyOfTags: selectedTag ? [selectedTag] : undefined,
+    first: 50,
+    skip: !selectedTag,
   });
 
   useEffect(() => {
+    // Reflect products loading state as AR loading when categories are already done
+    if (!categoriesLoading) {
+      onLoadingChange?.(loading || !tagResolved || !selectedTag);
+    }
+  }, [loading, tagResolved, selectedTag, categoriesLoading, onLoadingChange]);
+
+  useEffect(() => {
     const ids = (products ?? []).map((p: any) => String(p?.id ?? p?.gid)).filter(Boolean);
-    console.log('[ARCategoryRow] Curated products', { handle: 'ar-models', count: ids.length, ids });
-  }, [products]);
+    console.log('[ARCategoryRow] Curated products', { tag: selectedTag, count: ids.length, ids });
+  }, [products, selectedTag]);
 
   const arProducts = useMemo(() => {
     if (!products) return [] as any[];
@@ -79,6 +143,13 @@ export function ARCategoryRow({ onAddToCart, onRemoveFromCart }: ARCategoryRowPr
   }, [arProducts]);
 
 console.log('arProducts', arProducts);
+  // Avoid duplicate loaders: ProductList will render the top-level loader
+  if (categoriesLoading) return null;
+  if (!tagResolved || (selectedTag && loading)) return null;
+  // Hide entirely when no tag or no AR products
+  if (!selectedTag) return null;
+  if (Array.isArray(arProducts) && arProducts.length === 0) return null;
+
   return (
     <div className="relative overflow-hidden rounded-xl border border-gray-100 bg-white/80 px-3 py-3 shadow-[inset_0_1px_2px_rgba(255,255,255,0.8)] backdrop-blur-sm">
       {previewOpen ? (
@@ -120,19 +191,7 @@ console.log('arProducts', arProducts);
               </h3>
             </div>
 
-        {loading && arProducts.length === 0 && (
-        <div className="flex space-x-4 overflow-x-hidden pb-2">
-            {[0,1,2].map((i) => (
-            <div key={i} className="flex-shrink-0 w-48 h-56 bg-gray-100 rounded animate-pulse" />
-            ))}
-          </div>
-        )}
-
-        {!loading && arProducts.length === 0 && (
-          <div className="py-4 text-center text-gray-500">
-            No AR products found
-          </div>
-        )}
+        {/* Loading handled above with <LoadingState /> */}
 
         {arProducts.length > 0 && (
           <div className="">
@@ -213,8 +272,9 @@ function ARProductTile({
   onRemoveFromCart 
 }: ARProductTileProps) {
   const [isInCart, setIsInCart] = useState(false);
+  const { addToCart } = useShopCartActions();
   
-  const handleCartAction = () => {
+  const handleCartAction = async () => {
     if (!product) return;
     
     const productName = product.title || 'Unnamed Product';
@@ -222,23 +282,40 @@ function ARProductTile({
     
     if (isInCart && onRemoveFromCart) {
       onRemoveFromCart(productName, categoryName);
-    } else if (onAddToCart) {
-      onAddToCart({
+    } else {
+      // Fire local add-to-cart callback for UI bookkeeping
+      onAddToCart?.({
         name: productName,
         price: product.priceRange?.minVariantPrice?.amount || '0',
         image: product.featuredImage?.url || '',
         category: categoryName
       });
+      // Add to Shopify cart
+      const productId: string | null = String(product?.id ?? product?.gid ?? '') || null;
+      const variantId: string | null =
+        product?.defaultVariant?.id ||
+        product?.defaultVariantId ||
+        product?.selectedOrFirstAvailableVariant?.id ||
+        product?.firstAvailableVariant?.id ||
+        product?.firstVariant?.id ||
+        product?.variants?.nodes?.[0]?.id ||
+        product?.variants?.edges?.[0]?.node?.id ||
+        null;
+      if (productId && variantId) {
+        try {
+          await addToCart({ productId, productVariantId: variantId, quantity: 1 });
+        } catch (e) {
+          console.warn('[ARProductTile] addToCart failed', e);
+        }
+      }
     }
     
     setIsInCart(!isInCart);
   };
   const productId: string = String((product as any)?.id ?? (product as any)?.gid ?? '');
-  const { media } = useProductMedia({ id: productId, first: 10 });
+  const { media } = useProductMedia({ id: productId, first: 30 });
 
-  useEffect(() => {
-    const types = (media ?? []).map((m: any) => m?.mediaContentType).filter(Boolean);
-  }, [productId, media]);
+  // Filter enforced by returning null when no MODEL_3D below
 
 
 
@@ -260,6 +337,8 @@ function ARProductTile({
   }, [modelInfo.id, modelInfo.url]);
 
   const isSelected = modelInfo.id ? selectedModelIds.has(modelInfo.id) : false;
+
+  if (!modelInfo.id) return null;
 
   return (
     <div
@@ -287,6 +366,7 @@ function ARProductTile({
           {isInCart ? <Check size={14} /> : <Plus size={14} />}
         </button>
       </div>
+      {/* Central checkout is handled elsewhere; no per-item button here */}
     </div>
   );
 }

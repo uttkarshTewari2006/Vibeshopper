@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ProductCard, useProductSearch } from '@shopify/shop-minis-react';
+import { ProductCard, useProductSearch, useShopCartActions } from '@shopify/shop-minis-react';
 import type { GeneratedCategory } from './ProductList';
 import { ShoppingCart, Check } from 'lucide-react';
 
@@ -12,8 +12,9 @@ interface CategoryRowProps {
 
 export function CategoryRow({ category, baseQuery, onAddToCart, onRemoveFromCart }: CategoryRowProps) {
   const [addedToCart, setAddedToCart] = useState<Record<string, boolean>>({});
+  const { addToCart } = useShopCartActions();
   
-  const handleCartAction = (product: any) => {
+  const handleCartAction = async (product: any) => {
     if (!product) return;
     
     const productId = String(product?.id ?? product?.gid ?? '');
@@ -31,6 +32,22 @@ export function CategoryRow({ category, baseQuery, onAddToCart, onRemoveFromCart
         image: product.featuredImage?.url || '',
         category: category.name
       });
+      // Also add via Shopify cart actions
+      const variantId: string | null =
+        product?.defaultVariant?.id ||
+        product?.defaultVariantId ||
+        product?.selectedOrFirstAvailableVariant?.id ||
+        product?.firstAvailableVariant?.id ||
+        product?.firstVariant?.id ||
+        product?.variants?.nodes?.[0]?.id ||
+        product?.variants?.edges?.[0]?.node?.id || null;
+      if (productId && variantId) {
+        try {
+          await addToCart({ productId, productVariantId: variantId, quantity: 1 });
+        } catch (e) {
+          console.warn('[CategoryRow] addToCart failed', e);
+        }
+      }
     }
     
     setAddedToCart(prev => ({
@@ -38,7 +55,7 @@ export function CategoryRow({ category, baseQuery, onAddToCart, onRemoveFromCart
       [productId]: !isCurrentlyAdded
     }));
   };
-  const { name, description, searchTerms } = category;
+  const { name, searchTerms } = category;
 
   // Build a broader query using OR semantics to avoid over-filtering
   const orParts = [...searchTerms.map((t) => `"${t}"`)];
@@ -152,26 +169,29 @@ export function CategoryRow({ category, baseQuery, onAddToCart, onRemoveFromCart
                     variant="default"
                   />
                 </div>
-                <button
-                  onClick={() => handleCartAction(product)}
-                  className={`mt-2 mx-auto w-[90%] flex items-center justify-center gap-1.5 text-xs py-1.5 px-2 rounded-3xl transition-colors ${
-                    isAdded 
-                      ? 'bg-[#60DB74FF]/60 text-[#23774d] hover:bg-[#60DB74FF]/40' 
-                      : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                  }`}
-                >
-                  {isAdded ? (
-                    <>
-                      <Check size={14} />
-                      <span>Saved</span>
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart size={14} />
-                      <span>Save to Cart</span>
-                    </>
-                  )}
-                </button>
+                <div className="mt-2 mx-auto w-[90%]">
+                  <button
+                    onClick={() => handleCartAction(product)}
+                    className={`w-full flex items-center justify-center gap-1.5 text-xs py-1.5 px-2 rounded-3xl transition-colors ${
+                      isAdded 
+                        ? 'bg-[#60DB74FF]/60 text-[#23774d] hover:bg-[#60DB74FF]/40' 
+                        : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                    }`}
+                  >
+                    {isAdded ? (
+                      <>
+                        <Check size={14} />
+                        <span>Saved</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart size={14} />
+                        <span>Save to Cart</span>
+                      </>
+                    )}
+                  </button>
+                  {/* Central checkout is handled elsewhere; no per-item button here */}
+                </div>
               </div>
             );
           })}
