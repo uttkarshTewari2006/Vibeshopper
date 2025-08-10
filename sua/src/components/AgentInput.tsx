@@ -79,9 +79,7 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
   return (
     <div className="w-full">
       <div
-        className={`relative flex items-center gap-2 rounded-3xl p-3 sm:p-4 ring-1 ${
-          variant === 'dark' ? 'ring-white/20' : 'ring-[#5433EB26]'
-        } ${variant === 'dark' ? 'bg-white/14' : 'bg-white/55'} backdrop-blur-2xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.65)] transition-colors duration-500 ease-out ${
+        className={`relative flex items-center gap-2 rounded-3xl p-3 sm:p-4 ring-1 ring-[#5433EB26] bg-white/55 backdrop-blur-5xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.65)] transition-colors duration-500 ease-out ${
           isThinking ? 'ai-surface-thinking' : 'ai-surface'
         }`}
       >
