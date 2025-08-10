@@ -41,7 +41,7 @@ export function ResultsScreen({ initialPrompt, latestPrompt, onPromptChange, pro
           }`}>
             <div className="flex justify-center mb-8">
               <img 
-                src="src/public/vibeshopperlogo.svg" 
+                src="vibeshopperlogo.svg" 
                 alt="VibeShopper" 
                 className={`transition-all duration-500 ease-out ${
                   !hasSearched 
