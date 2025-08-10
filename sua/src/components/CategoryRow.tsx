@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { ProductCard, useProductSearch } from '@shopify/shop-minis-react';
 import type { GeneratedCategory } from './ProductList';
+import { LoadingState } from './LoadingState';
 
 interface CategoryRowProps {
   category: GeneratedCategory;
@@ -67,7 +68,9 @@ export function CategoryRow({ category, baseQuery }: CategoryRowProps) {
   return (
     <div className="py-3">
       <div className="mb-3">
-        <h3 className="text-base font-semibold text-gray-800 mb-2">{name}</h3>
+        <div className="flex items-center gap-2 mb-2">
+          <h3 className="text-base font-semibold text-gray-800">{name}</h3>
+        </div>
         {/* Show only the most relevant search terms as small pills (max 3, 2 words each) */}
         <div className="flex gap-1.5 overflow-hidden">
           {searchTerms
@@ -85,24 +88,27 @@ export function CategoryRow({ category, baseQuery }: CategoryRowProps) {
             })}
         </div>
       </div>
-      {loading && (!uniqueProducts || uniqueProducts.length === 0) && (
-        <div className="flex space-x-3 overflow-x-hidden pb-2">
-          {[0,1,2].map((i) => (
-            <div key={i} className="flex-shrink-0 w-36 h-42 bg-gray-100 rounded animate-pulse" />
-          ))}
-        </div>
+      {/* Show loading state when loading or updating - hide products */}
+      {(loading || category.isUpdating) && (
+        <LoadingState message={category.isUpdating ? `Updating ${name}...` : `Loading ${name}...`} />
       )}
-      {!loading && uniqueProducts && uniqueProducts.length === 0 && (
-        <p className="text-sm text-gray-400">No items found for this category.</p>
-      )}
-      {uniqueProducts && uniqueProducts.length > 0 && (
-        <div className="flex space-x-3 overflow-x-auto pb-2 snap-x snap-mandatory">
-          {uniqueProducts.map((product: any) => (
-            <div key={product.id as string} className="flex-shrink-0 w-36 snap-start">
-              <ProductCard product={product} />
+      
+      {/* Show products only when NOT loading and NOT updating */}
+      {!loading && !category.isUpdating && (
+        <>
+          {uniqueProducts && uniqueProducts.length === 0 && (
+            <p className="text-sm text-gray-400">No items found for this category.</p>
+          )}
+          {uniqueProducts && uniqueProducts.length > 0 && (
+            <div className="flex space-x-3 overflow-x-auto pb-2 snap-x snap-mandatory">
+              {uniqueProducts.map((product: any) => (
+                <div key={product.id as string} className="flex-shrink-0 w-36 snap-start">
+                  <ProductCard product={product} />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );
