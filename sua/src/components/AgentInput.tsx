@@ -5,9 +5,12 @@ type AgentInputProps = {
   onSend?: (payload: {prompt: string; imageFile?: File}) => void
   placeholder?: string
   variant?: 'light' | 'dark'
+  defaultPrompt?: string
+  showReset?: boolean
+  onReset?: () => void
 }
 
-export function AgentInput({onSend, placeholder = 'Vibe something...', variant = 'light'}: AgentInputProps) {
+export function AgentInput({onSend, placeholder = 'Vibe something...', variant = 'light', defaultPrompt, showReset = false, onReset}: AgentInputProps) {
   const [prompt, setPrompt] = useState('')
   const [imageFile, setImageFile] = useState<File | undefined>(undefined)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -34,6 +37,14 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
     autoSizeTextarea()
   }, [prompt])
 
+  // Initialize from defaultPrompt when provided (e.g., after view transition)
+  useEffect(() => {
+    if (defaultPrompt && defaultPrompt !== prompt) {
+      setPrompt(defaultPrompt)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultPrompt])
+
   async function handleSend() {
     if (!prompt && !imageFile) return
     setIsThinking(true)
@@ -51,6 +62,13 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
       // Keep thinking state controlled by outer consumer if needed
       setIsThinking(false)
     }
+  }
+
+  function handleReset() {
+    setPrompt('')
+    setImageFile(undefined)
+    setIsThinking(false)
+    onReset?.()
   }
 
   return (
@@ -138,27 +156,40 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
           className="flex-1 resize-none bg-transparent outline-none text-[15px] placeholder:text-gray-500 px-1 leading-6 max-h-32 overflow-y-auto"
         />
 
-        {(() => {
-          const disabled = uploading || (!prompt && !imageFile)
-          return (
+        {/* Inline actions (Reset optional) + Send */}
+        <div className="flex items-center gap-2">
+          {showReset && (prompt || imageFile) ? (
             <button
               type="button"
-              onClick={handleSend}
-              disabled={disabled}
-              aria-label="Send"
-              className={`shrink-0 h-10 w-10 rounded-full grid place-items-center transition-all active:scale-[0.98] shadow-md ring-1 ${
-                disabled
-                  ? 'bg-gray-100 text-gray-400 ring-black/5'
-                  : 'bg-[#5433EB] text-white ring-[#5433EB33] hover:bg-[#4b2fda]'
-              }`}
+              onClick={handleReset}
+              aria-label="Reset"
+              className="shrink-0 h-9 px-3 rounded-full text-xs bg-white/60 backdrop-blur ring-1 ring-black/10 hover:bg-white/70 transition-colors"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 19V5" />
-                <path d="M5 12l7-7 7 7" />
-              </svg>
+              Reset
             </button>
-          )
-        })()}
+          ) : null}
+          {(() => {
+            const disabled = uploading || (!prompt && !imageFile)
+            return (
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={disabled}
+                aria-label="Send"
+                className={`shrink-0 h-10 w-10 rounded-full grid place-items-center transition-all active:scale-[0.98] shadow-md ring-1 ${
+                  disabled
+                    ? 'bg-gray-100 text-gray-400 ring-black/5'
+                    : 'bg-[#5433EB] text-white ring-[#5433EB33] hover:bg-[#4b2fda]'
+                }`}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 19V5" />
+                  <path d="M5 12l7-7 7 7" />
+                </svg>
+              </button>
+            )
+          })()}
+        </div>
       </div>
 
       {imageFile ? (

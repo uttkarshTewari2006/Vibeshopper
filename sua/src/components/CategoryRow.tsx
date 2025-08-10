@@ -15,6 +15,14 @@ export function CategoryRow({ category, baseQuery }: CategoryRowProps) {
   if (baseQuery) orParts.push(`"${baseQuery}"`);
   const categoryQuery = orParts.length > 0 ? `(${orParts.join(' OR ')})` : baseQuery;
 
+  // Debug log for each row's query
+  console.log('[CategoryRow] Rendering row', {
+    name,
+    searchTerms,
+    baseQuery,
+    categoryQuery,
+  });
+
   const { products, loading, hasNextPage, fetchMore } = useProductSearch({
     query: categoryQuery,
     first: 30,
@@ -51,18 +59,36 @@ export function CategoryRow({ category, baseQuery }: CategoryRowProps) {
     }
   }, [hasNextPage, loading, fetchMore]);
 
+  // Don't render if we have fewer than 3 products (and we're not loading)
+  if (!loading && (!uniqueProducts || uniqueProducts.length < 3)) {
+    return null;
+  }
+
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">{name}</h3>
-        {description && (
-          <p className="text-sm text-gray-600 mb-3">{description}</p>
-        )}
+    <div className="py-3">
+      <div className="mb-3">
+        <h3 className="text-base font-semibold text-gray-800 mb-2">{name}</h3>
+        {/* Show only the most relevant search terms as small pills (max 3, 2 words each) */}
+        <div className="flex gap-1.5 overflow-hidden">
+          {searchTerms
+            .slice(0, 3) // Max 3 tags
+            .map((term, index) => {
+              const words = term.split(' ').slice(0, 2).join(' '); // Max 2 words
+              return (
+                <span
+                  key={index}
+                  className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full whitespace-nowrap flex-shrink-0"
+                >
+                  {words}
+                </span>
+              );
+            })}
+        </div>
       </div>
       {loading && (!uniqueProducts || uniqueProducts.length === 0) && (
-        <div className="flex space-x-4 overflow-x-hidden pb-2">
+        <div className="flex space-x-3 overflow-x-hidden pb-2">
           {[0,1,2].map((i) => (
-            <div key={i} className="flex-shrink-0 w-48 h-56 bg-gray-100 rounded animate-pulse" />
+            <div key={i} className="flex-shrink-0 w-36 h-42 bg-gray-100 rounded animate-pulse" />
           ))}
         </div>
       )}
@@ -70,9 +96,9 @@ export function CategoryRow({ category, baseQuery }: CategoryRowProps) {
         <p className="text-sm text-gray-400">No items found for this category.</p>
       )}
       {uniqueProducts && uniqueProducts.length > 0 && (
-        <div className="flex space-x-4 overflow-x-auto pb-2 snap-x snap-mandatory">
+        <div className="flex space-x-3 overflow-x-auto pb-2 snap-x snap-mandatory">
           {uniqueProducts.map((product: any) => (
-            <div key={product.id as string} className="flex-shrink-0 w-48 snap-start">
+            <div key={product.id as string} className="flex-shrink-0 w-36 snap-start">
               <ProductCard product={product} />
             </div>
           ))}

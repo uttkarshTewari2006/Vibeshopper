@@ -3,6 +3,7 @@
 /* keyframes required by blocks (reactbits) */
 @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 @keyframes shine { 0% { background-position: 100%; } 100% { background-position: -100%; } }
+@keyframes marqueeLeft { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
 /* animation utility classes expected by blocks */
 .animate-gradient { animation: gradient 8s linear infinite; }
@@ -21,6 +22,43 @@
   background-image: linear-gradient(120deg, rgba(84,51,235,0.10), rgba(84,51,235,0.03) 50%, rgba(84,51,235,0.16));
   background-size: 200% 200%;
   animation: aiGradientShift 8s ease-in-out infinite;
+}
+
+/* Ideas pills marquee (small footprint, infinite loop) */
+.ideas-marquee { overflow-x: hidden; overflow-y: visible; position: relative; }
+.ideas-track { display: inline-flex; align-items: center; white-space: nowrap; will-change: transform; animation: marqueeLeft 28s linear infinite; height: 2rem; }
+.ideas-marquee:hover .ideas-track { animation-play-state: paused; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Edge fade for marquee so pills don't clip abruptly */
+.ideas-marquee::before,
+.ideas-marquee::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 36px;
+  pointer-events: none;
+  z-index: 2;
+}
+.ideas-marquee::before { left: 0; background: linear-gradient(to right, rgba(255,255,255,1), rgba(255,255,255,0)); }
+.ideas-marquee::after { right: 0; background: linear-gradient(to left, rgba(255,255,255,1), rgba(255,255,255,0)); }
+
+
+
+
+
+/* Stained glass pills */
+.idea-pill {
+  background-image: linear-gradient(145deg, rgba(84,51,235,0.14), rgba(84,51,235,0.06));
+  border: 1px solid rgba(84,51,235,0.18);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  backdrop-filter: blur(10px) saturate(140%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 2px 6px rgba(0,0,0,0.04);
+  font-size: 10px;
+}
+.idea-pill:hover {
+  background-image: linear-gradient(145deg, rgba(84,51,235,0.18), rgba(84,51,235,0.10));
 }
 
 /* Intro background */
