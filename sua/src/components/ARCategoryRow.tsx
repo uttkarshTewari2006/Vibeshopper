@@ -186,7 +186,7 @@ console.log('arProducts', arProducts);
             <div className="text-center">
               <h3 className="inline-block text-2xl font-bold px-4 py-1 mt-2 rounded-full">
                 <span className="bg-[#260d93] bg-clip-text text-transparent">
-                  Vibe with it!
+                  Vibe with it
                 </span>
               </h3>
             </div>
