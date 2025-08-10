@@ -24,7 +24,7 @@ export function IntroScreen({onSend}: IntroScreenProps) {
       <div className="vignette" />
       <div className="relative z-10 mx-auto text-center flex min-h-[70vh] flex-col items-center justify-center px-6">
         <div className="w-full max-w-md relative z-20" style={{ perspective: '1000px' }}>
-          <div className="relative h-96 w-full">
+          <div className="relative h-60 w-full">
             <RotatingCart
               heightClassName="h-full"
               scale={0.5}
