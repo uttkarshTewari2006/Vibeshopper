@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ProductCard, useCuratedProducts, useProductMedia } from '@shopify/shop-minis-react';
 import { RoomPreview, type PreviewModel } from './RoomPreview';
+import { ShoppingCart, Check, Plus } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { EffectCoverflow } from 'swiper/modules';
 import 'swiper/css';
@@ -9,10 +10,13 @@ import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import './ARCategoryRow.css';
 
-interface ARCategoryRowProps {}
+interface ARCategoryRowProps {
+  onAddToCart?: (product: { name: string; price: string; image: string; category: string }) => void;
+  onRemoveFromCart?: (productName: string, categoryName: string) => void;
+}
 
 
-export function ARCategoryRow({}: ARCategoryRowProps) {
+export function ARCategoryRow({ onAddToCart, onRemoveFromCart }: ARCategoryRowProps) {
   const { products, loading } = useCuratedProducts({
     handle: 'ar-models',
   });
@@ -155,7 +159,11 @@ console.log('arProducts', arProducts);
                       product={product}
                       selectedModelIds={selectedModelIds}
                       onToggleSelected={toggleSelected}
-                      onModelInfo={(m) => m && setModelMap((prev) => ({ ...prev, [m.id]: m }))}
+                      onModelInfo={(model) => {
+                        if (model) setModelMap(prev => ({ ...prev, [model.id]: model }));
+                      }}
+                      onAddToCart={onAddToCart}
+                      onRemoveFromCart={onRemoveFromCart}
                     />
                   </div>
                 </SwiperSlide>
@@ -192,9 +200,39 @@ interface ARProductTileProps {
   selectedModelIds: Set<string>;
   onToggleSelected: (modelId: string | null) => void;
   onModelInfo: (model: PreviewModel | null) => void;
+  onAddToCart?: (product: { name: string; price: string; image: string; category: string }) => void;
+  onRemoveFromCart?: (productName: string, categoryName: string) => void;
 }
 
-function ARProductTile({ product, selectedModelIds, onToggleSelected, onModelInfo }: ARProductTileProps) {
+function ARProductTile({ 
+  product, 
+  selectedModelIds, 
+  onToggleSelected, 
+  onModelInfo, 
+  onAddToCart, 
+  onRemoveFromCart 
+}: ARProductTileProps) {
+  const [isInCart, setIsInCart] = useState(false);
+  
+  const handleCartAction = () => {
+    if (!product) return;
+    
+    const productName = product.title || 'Unnamed Product';
+    const categoryName = 'AR Models';
+    
+    if (isInCart && onRemoveFromCart) {
+      onRemoveFromCart(productName, categoryName);
+    } else if (onAddToCart) {
+      onAddToCart({
+        name: productName,
+        price: product.priceRange?.minVariantPrice?.amount || '0',
+        image: product.featuredImage?.url || '',
+        category: categoryName
+      });
+    }
+    
+    setIsInCart(!isInCart);
+  };
   const productId: string = String((product as any)?.id ?? (product as any)?.gid ?? '');
   const { media } = useProductMedia({ id: productId, first: 10 });
 
@@ -228,13 +266,25 @@ function ARProductTile({ product, selectedModelIds, onToggleSelected, onModelInf
       className={`relative flex-shrink-0 w-48 snap-start border ${isSelected ? 'border-[#60dbb4] bg-[#60dbb4]/10'  : 'border-transparent'} rounded-xl p-2`}
     >
       <ProductCard product={product} />
-      <div className="mt-2">
+      <div className="mt-2 flex gap-2">
         <button
           onClick={() => onToggleSelected(modelInfo.id)}
           disabled={!modelInfo.id}
-          className={`w-[80%] px-2 py-1 rounded-3xl text-xs border mx-auto block ${isSelected ? 'bg-[#60dbb4] text-white' : 'bg-white border-gray-300 text-gray-700'} disabled:opacity-50`}
+          className={`w-[80%] px-2 py-1 rounded-3xl text-xs border ${isSelected ? 'bg-[#60dbb4] text-white' : 'bg-white border-gray-300 text-gray-700'} disabled:opacity-50`}
         >
           {isSelected ? 'Selected' : 'Vibe it Visually'}
+        </button>
+        <button
+          onClick={handleCartAction}
+          disabled={!onAddToCart}
+          className={`w-8 h-8 flex items-center justify-center rounded-full text-xs transition-colors ${
+            isInCart 
+              ? 'bg-[#60DB74FF]/60 text-[#23774d] hover:bg-[#60DB74FF]/40' 
+              : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+          } disabled:opacity-50`}
+          title={isInCart ? 'Remove from cart' : 'Add to cart'}
+        >
+          {isInCart ? <Check size={14} /> : <Plus size={14} />}
         </button>
       </div>
     </div>

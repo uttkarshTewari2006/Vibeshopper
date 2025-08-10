@@ -1,13 +1,43 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ProductCard, useProductSearch } from '@shopify/shop-minis-react';
 import type { GeneratedCategory } from './ProductList';
+import { ShoppingCart, Check } from 'lucide-react';
 
 interface CategoryRowProps {
   category: GeneratedCategory;
   baseQuery: string;
+  onAddToCart: (product: { name: string; price: string; image: string; category: string }) => void;
+  onRemoveFromCart?: (productName: string, categoryName: string) => void;
 }
 
-export function CategoryRow({ category, baseQuery }: CategoryRowProps) {
+export function CategoryRow({ category, baseQuery, onAddToCart, onRemoveFromCart }: CategoryRowProps) {
+  const [addedToCart, setAddedToCart] = useState<Record<string, boolean>>({});
+  
+  const handleCartAction = (product: any) => {
+    if (!product) return;
+    
+    const productId = String(product?.id ?? product?.gid ?? '');
+    if (!productId) return;
+    
+    const productName = product.title || 'Unnamed Product';
+    const isCurrentlyAdded = addedToCart[productId];
+    
+    if (isCurrentlyAdded && onRemoveFromCart) {
+      onRemoveFromCart(productName, category.name);
+    } else {
+      onAddToCart({
+        name: productName,
+        price: product.priceRange?.minVariantPrice?.amount || '0',
+        image: product.featuredImage?.url || '',
+        category: category.name
+      });
+    }
+    
+    setAddedToCart(prev => ({
+      ...prev,
+      [productId]: !isCurrentlyAdded
+    }));
+  };
   const { name, description, searchTerms } = category;
 
   // Build a broader query using OR semantics to avoid over-filtering
@@ -110,15 +140,44 @@ export function CategoryRow({ category, baseQuery }: CategoryRowProps) {
       )}
       {uniqueProducts && uniqueProducts.length > 0 && (
         <div className="flex space-x-3 overflow-x-auto pb-2 snap-x snap-mandatory">
-          {uniqueProducts.map((product: any) => (
-            <div key={product.id as string} className="flex-shrink-0 w-36 snap-start">
-              <ProductCard product={product} />
-            </div>
-          ))}
+          {uniqueProducts.map((product: any) => {
+            const productId = String(product?.id ?? product?.gid ?? '');
+            const isAdded = addedToCart[productId] || false;
+            
+            return (
+              <div key={productId} className="relative w-[140px] flex-shrink-0">
+                <div className="w-full">
+                  <ProductCard
+                    product={product}
+                    variant="default"
+                  />
+                </div>
+                <button
+                  onClick={() => handleCartAction(product)}
+                  className={`mt-2 mx-auto w-[90%] flex items-center justify-center gap-1.5 text-xs py-1.5 px-2 rounded-3xl transition-colors ${
+                    isAdded 
+                      ? 'bg-[#60DB74FF]/60 text-[#23774d] hover:bg-[#60DB74FF]/40' 
+                      : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                  }`}
+                >
+                  {isAdded ? (
+                    <>
+                      <Check size={14} />
+                      <span>Saved</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart size={14} />
+                      <span>Save to Cart</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
-
 

@@ -1,8 +1,10 @@
 import {Button as ShopButton} from '@shopify/shop-minis-react'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import {ProductList} from '../components/ProductList'
 import {AgentInput} from '../components/AgentInput'
 // import {VibeChain} from '../components/VibeChain'
+import { ShoppingCart } from 'lucide-react'
+import { ARCategoryRow } from '../components/ARCategoryRow'
 
 interface ResultsScreenProps {
   initialPrompt?: string
@@ -12,9 +14,37 @@ interface ResultsScreenProps {
   onReset: () => void
 }
 
+interface CartItem {
+  id: string;
+  name: string;
+  price: string;
+  image: string;
+  category: string;
+}
+
 export function ResultsScreen({ initialPrompt, latestPrompt, onPromptChange, promptChain, onReset }: ResultsScreenProps) {
   const agentInputTransitionStyle = {['viewTransitionName' as any]: 'agent-input'} as React.CSSProperties
   const [hasSearched, setHasSearched] = useState<boolean>(Boolean(initialPrompt || latestPrompt))
+  const [cart, setCart] = useState<CartItem[]>([])
+  
+  const addToCart = useCallback((product: Omit<CartItem, 'id'>) => {
+    setCart(prevCart => {
+      // Check if product is already in cart
+      const exists = prevCart.some(item => 
+        item.name === product.name && item.category === product.category
+      )
+      if (exists) return prevCart;
+      
+      // Add new item with unique ID
+      return [...prevCart, { ...product, id: Date.now().toString() }]
+    })
+  }, [])
+  
+  const removeFromCart = useCallback((productName: string, categoryName: string) => {
+    setCart(prevCart => 
+      prevCart.filter(item => !(item.name === productName && item.category === categoryName))
+    )
+  }, [])
 
   const handleSend = ({prompt}: {prompt: string; imageFile?: File}) => {
     setHasSearched(true) 
@@ -107,22 +137,42 @@ export function ResultsScreen({ initialPrompt, latestPrompt, onPromptChange, pro
           </div>
 
           <div className="mt-6 space-y-8">
-            <section>
-              <ProductList 
-                basePrompt={initialPrompt || ''} 
-                prompt={latestPrompt || initialPrompt}
-                resetCounter={0}
-              />
+            <section className="">
+              <div>
+                <ARCategoryRow 
+                  onAddToCart={addToCart}
+                  onRemoveFromCart={removeFromCart}
+                />
+              </div>
+              
+              <div className="rounded-xl bg-white/50 backdrop-blur-sm">
+                <ProductList 
+                  basePrompt={initialPrompt || ''} 
+                  prompt={latestPrompt || initialPrompt}
+                  resetCounter={0}
+                  onAddToCart={addToCart}
+                  onRemoveFromCart={removeFromCart}
+                />
+              </div>
             </section>
           </div>
         </>
       )}
 
-      <div className="fixed inset-x-0 bottom-4 flex justify-center pointer-events-none">
-        <div className="pointer-events-auto w-[calc(100%-32px)] max-w-sm">
-          <ShopButton>Checkout with Shop</ShopButton>
+      {cart.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 pb-8 z-200 bg-gradient-to-t from-white/80 to-transparent pointer-events-none">
+          <div className="mx-auto">
+            <div className="pointer-events-auto w-[70%] mx-auto">
+              <ShopButton className="px-4 py-3 rounded-3xl">
+                <div className="flex items-center justify-center gap-2">
+                  <ShoppingCart size={16} />
+                  <span>Checkout {cart.length} {cart.length === 1 ? 'item' : 'items'} with Shop</span>
+                </div>
+              </ShopButton>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

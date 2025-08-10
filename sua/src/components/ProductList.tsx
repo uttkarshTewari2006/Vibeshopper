@@ -32,10 +32,12 @@ interface ProductListProps {
   basePrompt?: string; // initial prompt from intro
   prompt?: string; // latest refinement
   resetCounter?: number; // increments to signal a user-initiated reset
- // onVibeTagGenerated?: (vibeTag: string) => void; // callback for when vibe tag is generated
+  onAddToCart: (product: { name: string; price: string; image: string; category: string }) => void;
+  onRemoveFromCart?: (productName: string, categoryName: string) => void;
+  // onVibeTagGenerated?: (vibeTag: string) => void; // callback for when vibe tag is generated
 }
 
-export function ProductList({ basePrompt, prompt, resetCounter }: ProductListProps) {
+export function ProductList({ basePrompt, prompt, resetCounter, onAddToCart, onRemoveFromCart }: ProductListProps) {
   const [generatedCategories, setGeneratedCategories] = useState<GeneratedCategory[]>([]);
   const [isGeneratingCategories, setIsGeneratingCategories] = useState(false);
 
@@ -416,18 +418,24 @@ Return JSON array with updated categories. Keep the exact same IDs:
 
   return (
     <div className="w-full max-w-md mx-auto">
-      {/* AR Category Row - shown when there's a prompt */}
+      {/* AR Category Row - shown when there's a prompt
       {prompt && (
         <div className="mb-6">
           <ARCategoryRow />
         </div>
       )}
-      
+       */}
       {/* AI-Generated Categories and Products */}
       {generatedCategories.length > 0 && (
         <div className="space-y-4">
           {generatedCategories.map((category) => (
-            <CategoryRow key={category.name} category={category} baseQuery="" />
+            <CategoryRow
+              key={category.id}
+              category={category}
+              baseQuery={basePrompt || ''}
+              onAddToCart={onAddToCart}
+              onRemoveFromCart={onRemoveFromCart}
+            />
           ))}
         </div>
       )}
