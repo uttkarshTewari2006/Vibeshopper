@@ -6,14 +6,22 @@ export function AgentExperience() {
   const [mode, setMode] = useState<'intro' | 'results'>('intro')
   const [initialPrompt, setInitialPrompt] = useState<string>('')
   const [latestPrompt, setLatestPrompt] = useState<string>('')
+  const [promptChain, setPromptChain] = useState<Array<{id: string; prompt: string; timestamp: Date}>>([])
 
   const animateToResults = useCallback((payload: {prompt: string; imageFile?: File}) => {
-    console.log('[AgentExperience] animateToResults called with:', payload)
     const p = payload.prompt ?? ''
     setInitialPrompt(p)
     setLatestPrompt(p)
+    
+    // Add initial prompt to chain as the first item
+    const initialPromptItem = {
+      id: Date.now().toString(),
+      prompt: p,
+      timestamp: new Date()
+    }
+    setPromptChain([initialPromptItem])
+    
     const go = () => {
-      console.log('[AgentExperience] Setting mode to results')
       setMode('results')
     }
     // @ts-ignore - experimental API in TS lib
@@ -24,17 +32,36 @@ export function AgentExperience() {
 
   const handlePromptChange = useCallback((prompt: string) => {
     setLatestPrompt(prompt)
-    // If prompt is empty (reset), also clear the initial prompt
-    if (!prompt) {
+    
+    if (prompt && prompt !== initialPrompt) {
+      // Only add to chain if it's a new/different prompt
+      const newPromptItem = {
+        id: Date.now().toString(),
+        prompt: prompt,
+        timestamp: new Date()
+      }
+      setPromptChain(prev => [...prev, newPromptItem])
+    } else if (!prompt) {
+      // If prompt is empty (reset), clear everything
       setInitialPrompt('')
+      setPromptChain([])
     }
-  }, [])
+  }, [initialPrompt])
 
   if (mode === 'intro') {
     return <IntroScreen onSend={animateToResults} />
   }
 
-  return <ResultsScreen initialPrompt={initialPrompt} latestPrompt={latestPrompt} onPromptChange={handlePromptChange} />
+  return <ResultsScreen 
+    initialPrompt={initialPrompt} 
+    latestPrompt={latestPrompt} 
+    onPromptChange={handlePromptChange}
+    promptChain={promptChain}
+    onReset={() => {
+      setInitialPrompt('')
+      setLatestPrompt('')
+      setPromptChain([])
+    }}
+  />
 }
-
 

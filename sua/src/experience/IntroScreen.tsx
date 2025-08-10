@@ -12,7 +12,7 @@ export function IntroScreen({onSend}: IntroScreenProps) {
   const agentInputTransitionStyle = {['viewTransitionName' as any]: 'agent-input'} as React.CSSProperties
 
   return (
-    <div className="min-h-[92vh] px-4 intro-bg relative overflow-hidden">
+    <div className="min-h-screen h-screen px-4 intro-bg relative overflow-hidden">
       <div className="subtle-grid"></div>
       <div className="bokeh">
         <span style={{left: '10%', top: '8%'}} />
@@ -49,7 +49,7 @@ export function IntroScreen({onSend}: IntroScreenProps) {
 
       <div
         className="fixed inset-x-0 bottom-16 z-20 [view-transition-name:agent-input-container]"
-        style={{...agentInputTransitionStyle, bottom: 'calc(env(safe-area-inset-bottom) + 64px)'}}
+        style={{...agentInputTransitionStyle, bottom: 'calc(env(safe-area-inset-bottom) + 30px)'}}
       >
         <div className="mx-auto max-w-md px-6">
           <AgentInput onSend={onSend} />
