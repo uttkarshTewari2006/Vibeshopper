@@ -52,7 +52,27 @@ export function IntroScreen({onSend}: IntroScreenProps) {
         className="fixed inset-x-0 bottom-16 z-20 [view-transition-name:agent-input-container]"
         style={{...agentInputTransitionStyle, bottom: 'calc(env(safe-area-inset-bottom) + 30px)'}}
       >
-        <div className="mx-auto max-w-md px-6">
+        <div className="mx-auto max-w-md px-6 space-y-3">
+          <div className="ideas-marquee">
+            <div className="ideas-track">
+              {[
+                { label: '🪴 Blue ceramic plant pots bundle', prompt: 'Looking for a bundle to start a windowsill garden with blue ceramic pots. Include containers, potting soil, tools, seeds/plants, and a garden planner app.' },
+                { label: '👕 Midnight‑blue athleisure fit', prompt: 'Need a cozy midnight‑blue athleisure fit. Include tops, bottoms, accessories, laundry consumables, and a fitness planner app.' },
+                { label: '💻 Minimal black desk setup', prompt: 'Build a minimalist black desk setup. Include tools, cable management accessories, containers, lighting, and a task planner app.' },
+                { label: '🍳 Retro pastel kitchen tools', prompt: 'Retro pastel kitchen tools set. Include utensil set, mixing bowls, bakeware, cleaning consumables, and a recipe planner app.' },
+                { label: '🏕️ Weekend camping < $150', prompt: 'Weekend camping essentials under $150. Include tools, consumables, containers, accessories, and a trip planner app.' },
+              ].map((idea, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onSend({prompt: idea.prompt})}
+                  className="idea-pill shrink-0 mx-1 px-3 h-7 rounded-2xl text-[11px] whitespace-nowrap transition-colors"
+                >
+                  {idea.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <AgentInput onSend={onSend} />
         </div>
       </div>

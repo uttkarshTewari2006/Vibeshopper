@@ -41,8 +41,8 @@
   pointer-events: none;
   z-index: 2;
 }
-.ideas-marquee::before { left: 0; background: linear-gradient(to right, rgba(255,255,255,1), rgba(255,255,255,0)); }
-.ideas-marquee::after { right: 0; background: linear-gradient(to left, rgba(255,255,255,1), rgba(255,255,255,0)); }
+.ideas-marquee::before { left: 0; background: linear-gradient(to right, rgba(255,255,255,0.5), rgba(255,255,255,0)); }
+.ideas-marquee::after { right: 0; background: linear-gradient(to left, rgba(255,255,255,0.5), rgba(255,255,255,0)); }
 
 
 
