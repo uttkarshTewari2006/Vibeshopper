@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { Canvas, useThree } from '@react-three/fiber'
+import { Canvas } from '@react-three/fiber'
 import { Gltf, Environment, CameraControls } from '@react-three/drei'
 
 export default function App() {

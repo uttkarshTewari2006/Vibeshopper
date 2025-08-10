@@ -232,10 +232,10 @@ Focus on practical, actionable categories that would help someone find a broad r
         </form>
       </div>
 
-      {/* AR Category */}
+      {/* AR Category tied to the user's query */}
       {debouncedQuery && (
         <div className="mb-6">
-          <ARCategoryRow />
+          <ARCategoryRow query={debouncedQuery} />
         </div>
       )}
 

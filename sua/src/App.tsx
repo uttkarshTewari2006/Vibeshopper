@@ -1,9 +1,9 @@
-import {usePopularProducts, ProductCard} from '@shopify/shop-minis-react'
+import {usePopularProducts} from '@shopify/shop-minis-react'
 import { fal } from '@fal-ai/client'
 import { ProductList } from './components/ProductList'
 
 export function App() {
-  const {products} = usePopularProducts()
+  usePopularProducts()
   fal.config({
     credentials: "YOUR_FAL_KEY_HERE" // Replace with your actual API key
   });
