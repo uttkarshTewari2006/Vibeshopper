@@ -2,7 +2,8 @@ import { Suspense, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import type { Group } from "three";
-const MODEL_URL = new URL("./public/model.glb", import.meta.url).href;
+// Correct path to the GLB under src/public from this component folder
+const MODEL_URL = new URL("../public/model.glb", import.meta.url).href;
 
 type RotatingCartProps = {
   radius?: number;
