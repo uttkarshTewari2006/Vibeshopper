@@ -1,5 +1,5 @@
-@import "@shopify/shop-minis-react/styles";
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
+@import "@shopify/shop-minis-react/styles";
 /* keyframes required by blocks (reactbits) */
 @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 @keyframes shine { 0% { background-position: 100%; } 100% { background-position: -100%; } }

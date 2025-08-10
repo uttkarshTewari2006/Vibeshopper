@@ -46,7 +46,11 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
   }, [defaultPrompt])
 
   async function handleSend() {
-    if (!prompt && !imageFile) return
+    console.log('[AgentInput] handleSend called with prompt:', prompt, 'imageFile:', imageFile)
+    if (!prompt && !imageFile) {
+      console.log('[AgentInput] No prompt or imageFile, returning early')
+      return
+    }
     setIsThinking(true)
     // Optional: upload attached image into Shop Content first
     try {
@@ -57,6 +61,7 @@ export function AgentInput({onSend, placeholder = 'Vibe something...', variant =
           contentTitle: 'Agent input image',
         })
       }
+      console.log('[AgentInput] Calling onSend with:', {prompt, imageFile: uploadedFile})
       onSend?.({prompt, imageFile: uploadedFile})
     } finally {
       // Keep thinking state controlled by outer consumer if needed
