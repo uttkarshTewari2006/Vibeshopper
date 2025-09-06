@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { fal } from "@fal-ai/client";
 import { CategoryRow } from './CategoryRow';
 import { LoadingState } from './LoadingState';
+import { ARCategoryRow } from './ARCategoryRow';
 
 // Add Vite env types
 declare global {
@@ -31,12 +32,15 @@ interface ProductListProps {
   basePrompt?: string; // initial prompt from intro
   prompt?: string; // latest refinement
   resetCounter?: number; // increments to signal a user-initiated reset
- // onVibeTagGenerated?: (vibeTag: string) => void; // callback for when vibe tag is generated
+  onAddToCart: (product: { name: string; price: string; image: string; category: string }) => void;
+  onRemoveFromCart?: (productName: string, categoryName: string) => void;
+  // onVibeTagGenerated?: (vibeTag: string) => void; // callback for when vibe tag is generated
 }
 
-export function ProductList({ basePrompt, prompt, resetCounter }: ProductListProps) {
+export function ProductList({ basePrompt, prompt, resetCounter, onAddToCart, onRemoveFromCart }: ProductListProps) {
   const [generatedCategories, setGeneratedCategories] = useState<GeneratedCategory[]>([]);
   const [isGeneratingCategories, setIsGeneratingCategories] = useState(false);
+  const [isArLoading, setIsArLoading] = useState(false);
 
   // Fetch products using the search hook with filters
   // We fetch products per-category inside CategoryRow
@@ -48,8 +52,6 @@ export function ProductList({ basePrompt, prompt, resetCounter }: ProductListPro
   fal.config({
     credentials: falKey
   });
-
-
 
   // Generate categories using Fal.AI
   const generateCategoriesWithAI = async (prompt: string) => {
@@ -417,18 +419,39 @@ Return JSON array with updated categories. Keep the exact same IDs:
 
   return (
     <div className="w-full max-w-md mx-auto">
+      {(prompt || basePrompt) && (
+        <div className="mb-6">
+          {/* Single AR loader at the top once categories have finished loading */}
+          {!isGeneratingCategories && isArLoading && (
+            <LoadingState message="Finding AR products..." />
+          )}
+          <ARCategoryRow
+            intent={`${(basePrompt ?? '').trim()} ${(prompt ?? '').trim()}`.trim()}
+            categoriesLoading={isGeneratingCategories}
+            onLoadingChange={setIsArLoading}
+            onAddToCart={onAddToCart}
+            onRemoveFromCart={onRemoveFromCart}
+          />
+        </div>
+      )}
       {/* AI-Generated Categories and Products */}
       {generatedCategories.length > 0 && (
         <div className="space-y-4">
           {generatedCategories.map((category) => (
-            <CategoryRow key={category.name} category={category} baseQuery="" />
+            <CategoryRow
+              key={category.id}
+              category={category}
+              baseQuery={basePrompt || ''}
+              onAddToCart={onAddToCart}
+              onRemoveFromCart={onRemoveFromCart}
+            />
           ))}
         </div>
       )}
 
       {/* Category Generation Loading */}
       {isGeneratingCategories && (
-        <LoadingState message="Analyzing your project and generating relevant categories..." />
+        <LoadingState message="Catching a vibe..." />
       )}
 
       {/* Per-category loading and empty states are handled inside CategoryRow */}

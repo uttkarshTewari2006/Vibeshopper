@@ -1,35 +1,84 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { ProductCard, useProductSearch } from '@shopify/shop-minis-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ProductCard, useProductSearch, useShopCartActions } from '@shopify/shop-minis-react';
 import type { GeneratedCategory } from './ProductList';
+import { ShoppingCart, Check } from 'lucide-react';
 import { LoadingState } from './LoadingState';
 
 interface CategoryRowProps {
   category: GeneratedCategory;
   baseQuery: string;
+  onAddToCart: (product: { name: string; price: string; image: string; category: string }) => void;
+  onRemoveFromCart?: (productName: string, categoryName: string) => void;
 }
 
-export function CategoryRow({ category, baseQuery }: CategoryRowProps) {
-  const { name, description, searchTerms } = category;
+export function CategoryRow({ category, baseQuery, onAddToCart, onRemoveFromCart }: CategoryRowProps) {
+  const [addedToCart, setAddedToCart] = useState<Record<string, boolean>>({});
+  const { addToCart } = useShopCartActions();
+  
+  const handleCartAction = async (product: any) => {
+    if (!product) return;
+    
+    const productId = String(product?.id ?? product?.gid ?? '');
+    if (!productId) return;
+    
+    const productName = product.title || 'Unnamed Product';
+    const isCurrentlyAdded = addedToCart[productId];
+    
+    if (isCurrentlyAdded && onRemoveFromCart) {
+      onRemoveFromCart(productName, category.name);
+    } else {
+      onAddToCart({
+        name: productName,
+        price: product.priceRange?.minVariantPrice?.amount || '0',
+        image: product.featuredImage?.url || '',
+        category: category.name
+      });
+      const variantId: string | null =
+        product?.defaultVariant?.id ||
+        product?.defaultVariantId ||
+        product?.selectedOrFirstAvailableVariant?.id ||
+        product?.firstAvailableVariant?.id ||
+        product?.firstVariant?.id ||
+        product?.variants?.nodes?.[0]?.id ||
+        product?.variants?.edges?.[0]?.node?.id || null;
+      if (productId && variantId) {
+        try {
+          await addToCart({ productId, productVariantId: variantId, quantity: 1 });
+        } catch (e) {
+          console.warn('[CategoryRow] addToCart failed', e);
+        }
+      }
+    }
+    
+    setAddedToCart(prev => ({
+      ...prev,
+      [productId]: !isCurrentlyAdded
+    }));
+  };
+  const { name, searchTerms } = category;
 
-  // Build a broader query using OR semantics to avoid over-filtering
   const orParts = [...searchTerms.map((t) => `"${t}"`)];
   if (baseQuery) orParts.push(`"${baseQuery}"`);
   const categoryQuery = orParts.length > 0 ? `(${orParts.join(' OR ')})` : baseQuery;
 
-  // Debug log for each row's query
   console.log('[CategoryRow] Rendering row', {
     name,
     searchTerms,
     baseQuery,
     categoryQuery,
   });
+  useEffect(() => {
+    const simpleTags = searchTerms
+      .map((t) => String(t).toLowerCase().replace(/[^a-z0-9\-\s]/g, '').trim())
+      .filter(Boolean);
+    console.log('[CategoryRow] Query', { name, baseQuery, simpleTags, categoryQuery });
+  }, [name, baseQuery, categoryQuery, searchTerms]);
 
   const { products, loading, hasNextPage, fetchMore } = useProductSearch({
     query: categoryQuery,
     first: 30,
   });
 
-  // Deduplicate products by id to avoid duplicate React keys
   const uniqueProducts = useMemo(() => {
     if (!products) return [] as any[];
     const seenIds = new Set<string>();
@@ -44,7 +93,11 @@ export function CategoryRow({ category, baseQuery }: CategoryRowProps) {
     return result;
   }, [products]);
 
-  // Auto-load all pages for this category
+  useEffect(() => {
+    const ids = uniqueProducts.map((p: any) => String(p?.id ?? p?.gid)).filter(Boolean);
+    console.log('[CategoryRow] Results', { name, count: ids.length, ids });
+  }, [name, uniqueProducts]);
+
   const autoLoadAllRef = useRef(false);
   useEffect(() => {
     autoLoadAllRef.current = true;
@@ -60,7 +113,6 @@ export function CategoryRow({ category, baseQuery }: CategoryRowProps) {
     }
   }, [hasNextPage, loading, fetchMore]);
 
-  // Don't render if we have fewer than 3 products (and we're not loading)
   if (!loading && (!uniqueProducts || uniqueProducts.length < 3)) {
     return null;
   }
@@ -68,15 +120,13 @@ export function CategoryRow({ category, baseQuery }: CategoryRowProps) {
   return (
     <div className="py-3">
       <div className="mb-3">
-        <div className="flex items-center gap-2 mb-2">
-          <h3 className="text-base font-semibold text-gray-800">{name}</h3>
-        </div>
-        {/* Show only the most relevant search terms as small pills (max 3, 2 words each) */}
+
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">{name}</h3>
         <div className="flex gap-1.5 overflow-hidden">
           {searchTerms
-            .slice(0, 3) // Max 3 tags
+            .slice(0, 3)
             .map((term, index) => {
-              const words = term.split(' ').slice(0, 2).join(' '); // Max 2 words
+              const words = term.split(' ').slice(0, 2).join(' '); 
               return (
                 <span
                   key={index}
@@ -88,13 +138,53 @@ export function CategoryRow({ category, baseQuery }: CategoryRowProps) {
             })}
         </div>
       </div>
-      {/* Show loading state when loading or updating - hide products */}
       {(loading || category.isUpdating) && (
         <LoadingState message={category.isUpdating ? `Updating ${name}...` : `Loading ${name}...`} />
       )}
-      
-      {/* Show products only when NOT loading and NOT updating */}
-      {!loading && !category.isUpdating && (
+      {!loading && uniqueProducts && uniqueProducts.length === 0 && (
+        <p className="text-sm text-gray-400">No items found for this category.</p>
+      )}
+      {uniqueProducts && uniqueProducts.length > 0 && (
+        <div className="flex space-x-3 overflow-x-auto pb-2 snap-x snap-mandatory">
+          {uniqueProducts.map((product: any) => {
+            const productId = String(product?.id ?? product?.gid ?? '');
+            const isAdded = addedToCart[productId] || false;
+            
+            return (
+              <div key={productId} className="relative w-[140px] flex-shrink-0">
+                <div className="w-full">
+                  <ProductCard
+                    product={product}
+                    variant="default"
+                  />
+                </div>
+                <div className="mt-2 mx-auto w-[90%]">
+                  <button
+                    onClick={() => handleCartAction(product)}
+                    className={`w-full flex items-center justify-center gap-1.5 text-xs py-1.5 px-2 rounded-3xl transition-colors ${
+                      isAdded 
+                        ? 'bg-[#60DB74FF]/60 text-[#23774d] hover:bg-[#60DB74FF]/40' 
+                        : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                    }`}
+                  >
+                    {isAdded ? (
+                      <>
+                        <Check size={14} />
+                        <span>Saved</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart size={14} />
+                        <span>Save to Cart</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+            {!loading && !category.isUpdating && (
         <>
           {uniqueProducts && uniqueProducts.length === 0 && (
             <p className="text-sm text-gray-400">No items found for this category.</p>
@@ -113,5 +203,4 @@ export function CategoryRow({ category, baseQuery }: CategoryRowProps) {
     </div>
   );
 }
-
 

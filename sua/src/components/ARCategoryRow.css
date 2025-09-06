@@ -1,0 +1,53 @@
+/* Custom styles for the Swiper carousel */
+.swiper-container {
+  width: 100%;
+  padding: 20px 0 40px;
+  position: relative;
+  z-index: 1; /* Ensure Swiper stays below RoomPreview */
+  transform: translateZ(0); /* Create new stacking context */
+}
+
+/* Card container styles */
+.swiper-slide {
+  width: 196px !important;
+  height: 290px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box;
+}
+
+/* Card content wrapper */
+.swiper-slide > div {
+  width: calc(100% - 4px) !important;
+  height: calc(100% - 8px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  opacity: 0.7;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Active card styles */
+.swiper-slide-active {
+  opacity: 1;
+  transform: scale(1.05);
+  z-index: 2;
+  position: relative;
+}
+
+.swiper-slide-active > div {
+  box-shadow: 0 5px 20px rgba(84, 51, 235, 0.3);
+  opacity: 1;
+}
+
+/* Adjacent slides */
+.swiper-slide-prev,
+.swiper-slide-next {
+  opacity: 0.85;
+}
