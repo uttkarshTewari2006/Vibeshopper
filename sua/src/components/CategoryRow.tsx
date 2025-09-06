@@ -184,7 +184,8 @@ export function CategoryRow({ category, baseQuery, onAddToCart, onRemoveFromCart
             );
           })}
         </div>
-            {!loading && !category.isUpdating && (
+      )}
+      {!loading && !category.isUpdating && (
         <>
           {uniqueProducts && uniqueProducts.length === 0 && (
             <p className="text-sm text-gray-400">No items found for this category.</p>
