@@ -1,5 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
 @import "@shopify/shop-minis-react/styles";
+
+/* Global viewport height reset */
+html, body, #root {
+  height: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
 /* keyframes required by blocks (reactbits) */
 @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 @keyframes shine { 0% { background-position: 100%; } 100% { background-position: -100%; } }
@@ -44,6 +52,23 @@
 .ideas-marquee::before { left: 0; background: linear-gradient(to right, rgba(255,255,255,0.5), rgba(255,255,255,0)); }
 .ideas-marquee::after { right: 0; background: linear-gradient(to left, rgba(255,255,255,0.5), rgba(255,255,255,0)); }
 
+/* VibeChain marquee animation */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
 
 
 
@@ -67,6 +92,10 @@
     radial-gradient(1200px 300px at 50% 10%, rgba(84,51,235,0.06), transparent 70%),
     radial-gradient(800px 250px at 80% 60%, rgba(84,51,235,0.08), transparent 70%),
     #ffffff;
+  min-height: 100vh;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
 }
 
 /* Aurora layer + gentle film grain */

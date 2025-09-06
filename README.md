@@ -1,4 +1,5 @@
-# VibeShopper - AI-Powered Shopping Assistant
+# Vibeshopper
+
 
 <div align="center">
   <img src="sua/src/public/vibeshopperlogo.svg" alt="VibeShopper Logo" width="300"/>
