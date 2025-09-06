@@ -1,8 +1,5 @@
-# Vibeshopper
-
-
 <div align="center">
-  <img src="sua/src/public/vibeshopperlogo.svg" alt="VibeShopper Logo" width="300"/>
+  <img src="sua/src/public/vibeshopperlogo.svg" alt="VibeShopper Logo" width="500"/>
   
   *A personalized shopping assistant that learns your preferences and delivers a curated feed of products that match your style, price range, size, and design choices — all within Shopify stores.*
 </div>
