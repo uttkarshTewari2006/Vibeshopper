@@ -234,7 +234,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **VibeShopper** was built by a talented team of developers passionate about revolutionizing the shopping experience:
 
-- **Swayam Parekh** - [GitHub](https://github.com/swyxm) • [Email](mailto:swayampa@usc.edu) • [ai+cs+ba@usc](https://usc.edu)
+- **Swayam Parekh** - [GitHub](https://github.com/swyxm) • [swayampa@usc.edu](mailto:swayampa@usc.edu) • [ai+cs+ba@usc](https://usc.edu)
 - **Soham Jain** - [GitHub](https://github.com/J8Soham)
 - **Aradhya Kapoor** - [GitHub](https://github.com/Aradhya2005)
 - **Uttkarsh Tewari** - [GitHub](https://github.com/uttkarshtewari2006)
